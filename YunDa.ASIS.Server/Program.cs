@@ -3,10 +3,19 @@ using Microsoft.AspNetCore.Authorization;
 using YunDa.ASIS.Server.Models;
 using YunDa.ASIS.Server.Providers;
 using YunDa.ASIS.Server.Services;
+using YunDa.ASIS.Server.Test;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+var ss = builder.Configuration.GetSection("BookStoreDatabase");
+
+MongoDBTest dBTest = new MongoDBTest();
+dBTest.TestMatch();
+dBTest.TestFind();
+dBTest.TestProjection();
+
+
 builder.Services.Configure<BookStoreDatabaseSettings>(
    builder.Configuration.GetSection("BookStoreDatabase")
 );
@@ -94,6 +103,7 @@ app.MapGet("/api/heart", () =>
     return "ok";
 })
 .WithName("Heart");
+
 
 app.Run();
 //app.Run(async context =>

@@ -23,6 +23,8 @@ namespace YunDa.ASIS.Server.Services
                 bookStoreDatabaseSettings.Value.BooksCollectionName);
         }
 
+
+
         public async Task<List<Book>> GetAsync() =>
             await _booksCollection.Find(_ => true).ToListAsync();
 
