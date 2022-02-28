@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32210.238
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfApp1", "WpfApp1\WpfApp1.csproj", "{D603F0C1-BE51-4573-8EC8-AFF3F085FD39}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YunDa.ASIS.Server", "YunDa.ASIS.Server\YunDa.ASIS.Server.csproj", "{C4A346B3-D8D2-4D11-AA6E-D5B2666B8A43}"
 EndProject
 Global
@@ -13,10 +11,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{D603F0C1-BE51-4573-8EC8-AFF3F085FD39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D603F0C1-BE51-4573-8EC8-AFF3F085FD39}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D603F0C1-BE51-4573-8EC8-AFF3F085FD39}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D603F0C1-BE51-4573-8EC8-AFF3F085FD39}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C4A346B3-D8D2-4D11-AA6E-D5B2666B8A43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C4A346B3-D8D2-4D11-AA6E-D5B2666B8A43}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C4A346B3-D8D2-4D11-AA6E-D5B2666B8A43}.Release|Any CPU.ActiveCfg = Release|Any CPU

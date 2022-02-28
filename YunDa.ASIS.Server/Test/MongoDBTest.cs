@@ -24,11 +24,14 @@ namespace YunDa.ASIS.Server.Test
 
         public void TestAdd()
         {
+            //.Should().Be(1);
             // InsertOne
             {
+                int id = (int)users.CountDocuments(u => true) + 1;
                 var user = new User
                 {
-                    No = 13,
+                    Id = id,
+                    No = id,
                     Name = "zhangliang",
                 };
 
@@ -208,6 +211,15 @@ namespace YunDa.ASIS.Server.Test
                 FieldDefinition<Role> foreignField = nameof(Role.Id);
                 FieldDefinition<User> @as = nameof(User.Roles);
                 var user_roles = users.Aggregate().Lookup<Role, User>(DP_Role, localField, foreignField, @as).ToList();
+
+                var builder = Builders<User>.Projection;
+                var projection = builder.Exclude(u => u.Role).Exclude(u => u.Roles);
+
+                int id = (int)users.CountDocuments(u => true) + 1;
+                InsertOneOptions options = new InsertOneOptions();
+                //options.
+                user_roles[0].Id = id;
+                users.InsertOne(user_roles[0]);
             }
 
             {

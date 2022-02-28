@@ -11,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 var ss = builder.Configuration.GetSection("BookStoreDatabase");
 
 MongoDBTest dBTest = new MongoDBTest();
+dBTest.TestJoin();
+dBTest.TestAdd();
 dBTest.TestMatch();
 dBTest.TestFind();
 dBTest.TestProjection();

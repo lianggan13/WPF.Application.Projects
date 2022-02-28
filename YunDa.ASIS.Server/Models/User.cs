@@ -111,11 +111,18 @@ namespace YunDa.ASIS.Server.Models
             }
         }
 
+        [BsonIgnoreIfDefault]
+        [BsonIgnoreIfNull]
+        [BsonIgnore]
         public Role? Role { get; set; }
 
         /// <summary>
         /// 外联表必须以集合 作为 接收
         /// </summary>
+        [BsonIgnoreIfDefault]
+        [BsonIgnoreIfNull]
+        [BsonIgnore]
+        //[BsonDefaultValue(null)]
         public IEnumerable<Role>? Roles { get; set; }
 
         private int userGroupId;
