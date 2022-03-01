@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net5.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Prism.Unity" Version="8.1.97" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmartParking.Client.Assets\SmartParking.Client.Assets.csproj" />
+    <ProjectReference Include="..\SmartParking.Client.BLL\SmartParking.Client.BLL.csproj" />
+    <ProjectReference Include="..\SmartParking.Client.Common\SmartParking.Client.Common.csproj" />
+    <ProjectReference Include="..\SmartParking.Client.Model\SmartParking.Client.Model.csproj" />
+    <ProjectReference Include="..\SmartParking.Client.Modules\SmartParking.Client.Modules.csproj" />
+  </ItemGroup>
+
+</Project>

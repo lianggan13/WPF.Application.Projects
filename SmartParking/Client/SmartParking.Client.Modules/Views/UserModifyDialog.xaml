@@ -1,0 +1,118 @@
+﻿<UserControl
+    x:Class="SmartParking.Client.Modules.Views.UserModifyDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:SmartParking.Client.Modules.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:prism="http://prismlibrary.com/"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
+    <prism:Dialog.WindowStyle>
+        <Style TargetType="Window">
+            <Setter Property="Width" Value="500" />
+            <Setter Property="Height" Value="300" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="WindowChrome.WindowChrome">
+                <Setter.Value>
+                    <WindowChrome
+                        GlassFrameThickness="-1"
+                        NonClientFrameEdges="None"
+                        ResizeBorderThickness="0" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </prism:Dialog.WindowStyle>
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!--<ResourceDictionary Source="/SmartParking.Client.Assets;component/Styles/BaseResources.xaml" />-->
+                <ResourceDictionary Source="/SmartParking.Client.Assets;component/Styles/TextBoxStyle.xaml" />
+                <ResourceDictionary Source="/SmartParking.Client.Assets;component/Styles/ButtonStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <FontFamily x:Key="Iconfont">pack://application:,,,/SmartParking.Client.Assets;component/Fonts/#iconfont</FontFamily>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="0,20,0,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70" />
+            <RowDefinition />
+            <RowDefinition Height="70" />
+        </Grid.RowDefinitions>
+        <TextBlock
+            Margin="10,0"
+            VerticalAlignment="Center"
+            FontSize="20"
+            Foreground="#888"
+            Text="{Binding Title}" />
+
+        <Grid Grid.Row="1" Margin="20,10">
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="60" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock
+                VerticalAlignment="Center"
+                Foreground="#888"
+                Text="用户名" />
+            <TextBlock
+                Grid.Row="1"
+                VerticalAlignment="Center"
+                Foreground="#888"
+                Text="姓   名" />
+            <TextBlock
+                Grid.Row="2"
+                VerticalAlignment="Center"
+                Foreground="#888"
+                Text="邮   箱" />
+
+            <TextBox
+                Grid.Column="1"
+                Style="{StaticResource NormalTextBoxStyle}"
+                Text="{Binding User.username}" />
+            <TextBox
+                Grid.Row="1"
+                Grid.Column="1"
+                Style="{StaticResource NormalTextBoxStyle}"
+                Text="{Binding User.nickname}" />
+            <TextBox
+                Grid.Row="2"
+                Grid.Column="1"
+                Style="{StaticResource NormalTextBoxStyle}"
+                Text="{Binding User.email}" />
+        </Grid>
+
+        <StackPanel
+            Grid.Row="2"
+            Margin="20,0"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                Width="100"
+                Height="30"
+                Margin="5,0"
+                Background="#FF0ABEFF"
+                Command="{Binding ConfirmCommand}"
+                Content="确定"
+                Style="{StaticResource NormalButtonStyle}" />
+            <Button
+                Width="100"
+                Height="30"
+                Background="#DDD"
+                Command="{Binding CancelCommand}"
+                Content="取消"
+                Foreground="#666"
+                Style="{StaticResource NormalButtonStyle}" />
+        </StackPanel>
+    </Grid>
+</UserControl>
