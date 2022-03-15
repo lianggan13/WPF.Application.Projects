@@ -1,28 +1,55 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
-using YunDa.ASIS.Server.Models;
+using Newtonsoft.Json.Serialization;
+using YunDa.ASIS.Server.Filters;
 using YunDa.ASIS.Server.Providers;
 using YunDa.ASIS.Server.Services;
-using YunDa.ASIS.Server.Test;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var ss = builder.Configuration.GetSection("BookStoreDatabase");
 
-MongoDBTest dBTest = new MongoDBTest();
-dBTest.TestJoin();
-dBTest.TestAdd();
-dBTest.TestMatch();
-dBTest.TestFind();
-dBTest.TestProjection();
+#region Log4Net
+{
+    ////Nuget 包引入：
+    ////1.Log4Net
+    ////2.Microsoft.Extensions.Logging.Log4Net.AspNetCore
+    builder.Services.AddLogging(cfg =>
+    {
+        //默认的配置文件路径是在根目录，且文件名为log4net.config
+        //如果文件路径或名称有变化，需要重新设置其路径或名称
+        //比如在项目根目录下创建一个名为cfg的文件夹，将log4net.config文件移入其中，并改名为log.config
+        //则需要使用下面的代码来进行配置
+        cfg.AddLog4Net(new Log4NetProviderOptions()
+        {
+            Log4NetConfigFileName = "ConfigFiles/log4net.config",
+            Watch = true
+        });
 
+    });
+}
 
-builder.Services.Configure<BookStoreDatabaseSettings>(
-   builder.Configuration.GetSection("BookStoreDatabase")
+#endregion
+
+#region NLogin
+{
+    //Nuget引入：NLog.Web.AspNetCore
+    //builder.Logging.AddNLog("ConfigFiles/NLog.config");
+}
+#endregion
+
+#region Session
+//builder.Services.AddSession();
+#endregion
+
+#region Database
+builder.Services.Configure<MongoDbSettings>(
+builder.Configuration.GetSection("MongoDbSettings")
 );
+#endregion
 
 builder.Services.AddSingleton<BooksService>();
+builder.Services.AddSingleton<MongoDbService>();
 //builder.Services.adds
 //builder.Services.AddAuthentication(options=>options.AddScheme())
 // 注册
@@ -51,10 +78,21 @@ builder.Services.AddAuthorization(options =>
         builder.RequireRole("admin");
     });
 });
-//builder.Services.AddControllers();
-builder.Services.AddControllers()
-    .AddJsonOptions(
-        options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<CustomGlobalActionFilterAttribute>(); // 全局注册 Filter
+}).AddNewtonsoftJson(options =>
+{
+    // Use the default property (Pascal) casing
+    options.SerializerSettings.ContractResolver = new DefaultContractResolver();
+
+    // Configure a custom converter
+    //options.SerializerSettings.Converters.Add(new MyCustomJsonConverter());
+});
+//.AddJsonOptions(
+//        options => /*options.JsonSerializerOptions.PropertyNamingPolicy = null */);
+
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -64,7 +102,11 @@ builder.Services.AddSwaggerGen(c =>
     //c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 });
 
+
 var app = builder.Build();
+builder.BuildServiceLocator(app);
+
+var db = app.Services.GetService<MongoDbService>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -83,7 +125,6 @@ else
 app.UseRouting();        // 路由 中间件
 app.UseAuthentication(); // 身份验证 中间件 在允许用户访问安全资源之前尝试对用户进行身份验证
 app.UseAuthorization();  // 身份授权 中间件 授权用户访问安全资源
-
 
 // 自定义中间件
 //app.Use(async (context, next) =>

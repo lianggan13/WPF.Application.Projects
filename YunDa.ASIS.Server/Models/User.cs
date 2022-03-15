@@ -1,8 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Driver;
-using System.Collections.ObjectModel;
+using Newtonsoft.Json;
 using System.Runtime.CompilerServices;
-using System.Text.Json.Serialization;
 
 namespace YunDa.ASIS.Server.Models
 {
@@ -14,225 +12,138 @@ namespace YunDa.ASIS.Server.Models
     public class User : DynamicBson
     {
         /// <summary>
-        /// 编号
+        /// 序号
         /// </summary>
-        [BsonId]
-        public int Id { get; set; }
+        [JsonProperty("Id")]
+        public int ID { get; set; }
 
-        private int no;
         /// <summary>
         /// 获取或设置用户工号
         /// </summary>
-        public int No
-        {
-            get { return no; }
-            set
-            {
-                if (no != value)
-                {
-                    no = value;
-                    UpdateProperty(value);
-                }
-            }
-        }
+        public int No { get; set; }
 
-        private int cardNo;
         /// <summary>
         /// 获取或设置用户卡号
         /// </summary>
-        public int CardNo
-        {
-            get { return cardNo; }
-            set
-            {
-                if (cardNo != value)
-                {
-                    cardNo = value;
-                    UpdateProperty(value);
-                }
-            }
-        }
+        public int? CardNo { get; set; }
 
-        private string name;
         /// <summary>
-        /// 获取或设置用户姓名
+        /// 获取或设置用户名称
         /// </summary>
-        public string Name
-        {
-            get { return name; }
-            set
-            {
-                if (name != value)
-                {
-                    name = value;
-                    UpdateProperty(value);
-                }
-            }
-        }
+        public string Name { get; set; } = null!;
 
         /// <summary>
-        /// 获取或设置用户照片(base64编码字符串)
+        /// 获取或设置用户照片
         /// </summary>
         [JsonIgnore]
-        public string Photo { get; set; }
+        public string Photo { get; set; } = null!;
 
-        private string password;
         /// <summary>
-        /// 获取或设置密码
+        /// 获取用户的照片地址
+        /// </summary>
+        [BsonIgnore]
+        public string PhotoUrl { get; set; } = null!;
+
+        /// <summary>
+        /// 获取或设置用户的登录密码
         /// </summary>
         [JsonIgnore]
-        public string Password
-        {
-            get { return password; }
-            set
-            {
-                if (password != value)
-                {
-                    password = value;
-                    UpdateProperty(value);
-                }
-            }
-        }
+        public string Password { get; set; } = null!;
 
-        private int roleId;
+        /// <summary>
+        /// 获取或设置用户设置的旧密码
+        /// </summary>
+        [BsonIgnore]
+        public string OldPassword { get; set; } = null!;
+
+        /// <summary>
+        /// 获取或设置用户设置的新密码
+        /// </summary>
+        [BsonIgnore]
+        public string NewPassword { get; set; } = null!;
+
         /// <summary>
         /// 获取或设置用户的角色编号
         /// </summary>
-        public int RoleId
-        {
-            get { return roleId; }
-            set
-            {
-                if (roleId != value)
-                {
-                    roleId = value;
-                    UpdateProperty(value);
-                }
-            }
-        }
-
-        [BsonIgnoreIfDefault]
-        [BsonIgnoreIfNull]
-        [BsonIgnore]
-        public Role? Role { get; set; }
+        public int RoleId { get; set; }
 
         /// <summary>
-        /// 外联表必须以集合 作为 接收
+        /// 是否允许更新，该用户下发权限后不允许更新
         /// </summary>
-        [BsonIgnoreIfDefault]
-        [BsonIgnoreIfNull]
-        [BsonIgnore]
-        //[BsonDefaultValue(null)]
-        public IEnumerable<Role>? Roles { get; set; }
+        public bool AllowUpdate { get; set; }
 
-        private int userGroupId;
         /// <summary>
-        /// 获取或设置班组编号
+        /// 获取或设置用户班组编号
         /// </summary>
-        public int UserGroupId
+        public int UserGroupId { get; set; }
+
+        //[BsonIgnore]
+        //[JsonIgnore]
+        //public IssueType IssueType { get; set; }
+
+        public override bool Equals(object? obj)
         {
-            get { return userGroupId; }
-            set
+            if (!(obj is User anohter))
             {
-                if (userGroupId != value)
-                {
-                    userGroupId = value;
-                    UpdateProperty(value);
-                }
+                return false;
             }
+            return this.ID == anohter.ID;
         }
 
-
-        private ObservableCollection<int> regionIds = new();
-        [JsonIgnore]
-        public ObservableCollection<int> RegionIds
+        public override int GetHashCode()
         {
-            get { return regionIds; }
-            set
-            {
-                regionIds = value;
-                UpdateProperty(value);
-            }
+            return ID.GetHashCode();
         }
 
-        private ObservableCollection<int> positionIds = new ObservableCollection<int>();
-        [JsonIgnore]
-        public ObservableCollection<int> PositionIds
+        public SimpleUser ToSimpleUser()
         {
-            get { return positionIds; }
-            set
+            return new SimpleUser()
             {
-                if (positionIds != value)
-                {
-                    positionIds = value;
-                    UpdateProperty(value);
-                }
-            }
-        }
-
-
-        private ObservableCollection<int> keyIds = new ObservableCollection<int>();
-        [JsonIgnore]
-        public ObservableCollection<int> KeyIds
-        {
-            get { return keyIds; }
-            set
-            {
-                if (keyIds != value)
-                {
-                    keyIds = value;
-                    UpdateProperty(value);
-                }
-            }
-        }
-
-
-        private ObservableCollection<int> toolIds = new ObservableCollection<int>();
-        [JsonIgnore]
-        public ObservableCollection<int> ToolIds
-        {
-            get { return toolIds; }
-            set
-            {
-                if (toolIds != value)
-                {
-                    toolIds = value;
-                    UpdateProperty(value);
-                }
-            }
-        }
-
-
-        private ObservableCollection<int> illegalToolIds = new ObservableCollection<int>();
-        [JsonIgnore]
-        public ObservableCollection<int> IllegalToolIds
-        {
-            get { return illegalToolIds; }
-            set
-            {
-                if (illegalToolIds != value)
-                {
-                    illegalToolIds = value;
-                    UpdateProperty(value);
-                }
-            }
+                Id = ID,
+                No = No,
+                CardNo = CardNo,
+                Name = Name,
+                UserGroupId = UserGroupId
+            };
         }
 
         protected override void UpdateProperty<T>(T value, [CallerMemberName] string propertyName = null)
         {
-            return;
-            if (!CanUpdate)
-            {
-                return;
-            }
-            FilterDefinition<User> filter = Builders<User>.Filter.Eq(i => i.Id, Id);
-            FieldDefinition<User, T> field = propertyName;
-            UpdateDefinition<User> update = Builders<User>.Update.Set(field, value);
-            //DataProvider.Instance.GetAggregate<User>(DataProvider.UserCollectionName).UpdateOne(filter, update);
+            throw new NotImplementedException();
         }
 
-        public DateTime? EntryTime { get; set; }
-        public DateTime? OutOfTime { get; set; }
 
     }
+
+    public class SimpleUser
+    {
+        public int Id { get; set; }
+
+        /// <summary>
+        /// 获取或设置用户工号
+        /// </summary>
+        public int No { get; set; }
+
+        /// <summary>
+        /// 获取或设置用户卡号
+        /// </summary>
+        public int? CardNo { get; set; }
+
+        /// <summary>
+        /// 获取或设置用户姓名
+        /// </summary>
+        public string Name { get; set; }
+
+        public int UserGroupId { get; set; }
+
+        //public string UserGroup
+        //{
+        //    get
+        //    {
+        //        UserGroup group = DataProvider.Instance.UserGroupList.FirstOrDefault(i => i.ID == UserGroupId);
+        //        return group?.Name;
+        //    }
+        //}
+    }
+
 }

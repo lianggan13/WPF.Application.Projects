@@ -4,23 +4,21 @@ using YunDa.ASIS.Server.Models;
 
 namespace YunDa.ASIS.Server.Services
 {
-
-
     public class BooksService
     {
         private readonly IMongoCollection<Book> _booksCollection;
 
         public BooksService(
-            IOptions<BookStoreDatabaseSettings> bookStoreDatabaseSettings)
+            IOptions<MongoDbSettings> options)
         {
             var mongoClient = new MongoClient(
-                bookStoreDatabaseSettings.Value.ConnectionString);
+                options.Value.ConnectionString);
 
             var mongoDatabase = mongoClient.GetDatabase(
-                bookStoreDatabaseSettings.Value.DatabaseName);
+                options.Value.DatabaseName);
 
-            _booksCollection = mongoDatabase.GetCollection<Book>(
-                bookStoreDatabaseSettings.Value.BooksCollectionName);
+            //_booksCollection = mongoDatabase.GetCollection<Book>(
+            //    options.Value.BooksCollectionName);
         }
 
 

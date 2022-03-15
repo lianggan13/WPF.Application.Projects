@@ -1,4 +1,6 @@
 
+db.DP_OperationRecord.find({ "_id": 594908 }).pretty()
+
 db.DP_User.update({},{"$unset":{"Roles":""}},{multi:true})
 db.DP_User.update({},{"$unset":{"Role":""}},{multi:true})
 

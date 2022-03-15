@@ -30,7 +30,7 @@ namespace YunDa.ASIS.Server.Test
                 int id = (int)users.CountDocuments(u => true) + 1;
                 var user = new User
                 {
-                    Id = id,
+                    ID = id,
                     No = id,
                     Name = "zhangliang",
                 };
@@ -93,6 +93,16 @@ namespace YunDa.ASIS.Server.Test
 
         public void TestUpdate()
         {
+
+            //var col = GetAggregate<OperationRecordEx>(OperationRecord);
+            //if (data.Id == 0)
+            //{
+            //    long n = DataBase.GetCount<OperationRecordEx>(OperationRecord);
+            //    data.Id = ++n;
+            //}
+            //ReplaceOptions opt = new() { IsUpsert = true };
+            //col.ReplaceOne(i => i.Id == data.Id, data, opt);
+
             // UpdateOne
             {
                 var filter = Builders<User>.Filter.Eq("Name", "zhangliang");
@@ -174,7 +184,7 @@ namespace YunDa.ASIS.Server.Test
         public void TestProjection()
         {
             var builder = Builders<User>.Projection;
-            var projection = builder.Include(u => u.Name).Exclude(u => u.Id);
+            var projection = builder.Include(u => u.Name).Exclude(u => u.ID);
             var list = users.Find(u => true).Project(projection).ToEnumerable().Select(doc => doc.AsBsonValue).ToList();
         }
 
@@ -189,65 +199,65 @@ namespace YunDa.ASIS.Server.Test
         public void TestGroup()
         {
             {
-                // 按照 RoleId 分组，统计每组的 人数 和 钥匙数量 
-                var list = users.Aggregate().Group(u => new { u.RoleId }, g => new { Name = g.Key, Count = g.Sum(u => 1), KeyNums = g.Sum(u => u.KeyIds.Count) }).ToList();
+                //// 按照 RoleId 分组，统计每组的 人数 和 钥匙数量 
+                //var list = users.Aggregate().Group(u => new { u.RoleId }, g => new { Name = g.Key, Count = g.Sum(u => 1), KeyNums = g.Sum(u => u.KeyIds.Count) }).ToList();
 
-                var list2 = (from u in users.AsQueryable()
-                             group u by u.RoleId
-                             into g
-                             select new
-                             {
-                                 Name = g.Key,
-                                 Count = g.Sum(u => 1),
-                                 KeyNums = g.Sum(u => u.KeyIds.Count)
-                             }).ToList();
+                //var list2 = (from u in users.AsQueryable()
+                //             group u by u.RoleId
+                //             into g
+                //             select new
+                //             {
+                //                 Name = g.Key,
+                //                 Count = g.Sum(u => 1),
+                //                 KeyNums = g.Sum(u => u.KeyIds.Count)
+                //             }).ToList();
             }
         }
 
         public void TestJoin()
         {
-            {
-                FieldDefinition<User> localField = nameof(User.RoleId);
-                FieldDefinition<Role> foreignField = nameof(Role.Id);
-                FieldDefinition<User> @as = nameof(User.Roles);
-                var user_roles = users.Aggregate().Lookup<Role, User>(DP_Role, localField, foreignField, @as).ToList();
+            //{
+            //    FieldDefinition<User> localField = nameof(User.RoleId);
+            //    FieldDefinition<Role> foreignField = nameof(Role.Id);
+            //    FieldDefinition<User> @as = nameof(User.Roles);
+            //    var user_roles = users.Aggregate().Lookup<Role, User>(DP_Role, localField, foreignField, @as).ToList();
 
-                var builder = Builders<User>.Projection;
-                var projection = builder.Exclude(u => u.Role).Exclude(u => u.Roles);
+            //    var builder = Builders<User>.Projection;
+            //    var projection = builder.Exclude(u => u.Role).Exclude(u => u.Roles);
 
-                int id = (int)users.CountDocuments(u => true) + 1;
-                InsertOneOptions options = new InsertOneOptions();
-                //options.
-                user_roles[0].Id = id;
-                users.InsertOne(user_roles[0]);
-            }
+            //    int id = (int)users.CountDocuments(u => true) + 1;
+            //    InsertOneOptions options = new InsertOneOptions();
+            //    //options.
+            //    user_roles[0].ID = id;
+            //    users.InsertOne(user_roles[0]);
+            //}
 
-            {
-                var urs = users.AsQueryable().GroupJoin(roles.AsQueryable(), u => u.RoleId, r => r.Id,
-                      (u, gr) => new { u, gr }).ToList();
-                var list = urs.Select(l =>
-                {
-                    l.u.Roles = l.gr;
-                    return l.u;
-                });
-            }
+            //{
+            //    var urs = users.AsQueryable().GroupJoin(roles.AsQueryable(), u => u.RoleId, r => r.Id,
+            //          (u, gr) => new { u, gr }).ToList();
+            //    var list = urs.Select(l =>
+            //    {
+            //        l.u.Roles = l.gr;
+            //        return l.u;
+            //    });
+            //}
 
-            {
-                var urs = (from u in users.AsQueryable()
-                           join r in roles.AsQueryable()
-                           on u.RoleId equals r.Id
-                           into gr    // 增加 into 变为 left join
-                           select new
-                           {
-                               u,
-                               gr,
-                           }).ToList();
-                var list = urs.Select(l =>
-                {
-                    l.u.Roles = l.gr;
-                    return l.u;
-                });
-            }
+            //{
+            //    var urs = (from u in users.AsQueryable()
+            //               join r in roles.AsQueryable()
+            //               on u.RoleId equals r.Id
+            //               into gr    // 增加 into 变为 left join
+            //               select new
+            //               {
+            //                   u,
+            //                   gr,
+            //               }).ToList();
+            //    var list = urs.Select(l =>
+            //    {
+            //        l.u.Roles = l.gr;
+            //        return l.u;
+            //    });
+            //}
 
         }
     }
