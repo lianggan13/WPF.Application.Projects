@@ -4,14 +4,18 @@
     {
         private static IServiceProvider? provider;
 
-        public static void BuildServiceLocator(this WebApplicationBuilder builder, IApplicationBuilder app)
+        /// <summary>
+        /// 服务定位器
+        /// </summary>
+        /// <param name="app"></param>
+        public static void UseServiceLocator(this IApplicationBuilder app)
         {
             provider = app.ApplicationServices;
         }
 
         /// <summary>
         /// 手动获取注入的对象实例
-        /// (注: 仅对 AddTransient 和 AddSingleton 有效)
+        /// (注: 仅对注入方式 AddTransient 和 AddSingleton 有效)
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>

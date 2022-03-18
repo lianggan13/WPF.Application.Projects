@@ -9,6 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+//builder.Services.Configure<IISOptions>(options =>
+//{
+//    options.ForwardClientCertificate = true;
+//});
+
 #region Log4Net
 {
     ////Nuget 包引入：
@@ -50,6 +55,9 @@ builder.Configuration.GetSection("MongoDbSettings")
 
 builder.Services.AddSingleton<BooksService>();
 builder.Services.AddSingleton<MongoDbService>();
+builder.Services.AddSingleton<LoggerService>();
+
+
 //builder.Services.adds
 //builder.Services.AddAuthentication(options=>options.AddScheme())
 // 注册
@@ -104,7 +112,8 @@ builder.Services.AddSwaggerGen(c =>
 
 
 var app = builder.Build();
-builder.BuildServiceLocator(app);
+
+
 
 var db = app.Services.GetService<MongoDbService>();
 
@@ -118,6 +127,9 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
     app.UseExceptionHandler("/Error"); // UseExceptionHandler 是添加到管道中的第一个中间件组件。因此，异常处理程序中间件会捕获以后调用中发生的任何异常
     app.UseHsts();
 }
@@ -125,6 +137,9 @@ else
 app.UseRouting();        // 路由 中间件
 app.UseAuthentication(); // 身份验证 中间件 在允许用户访问安全资源之前尝试对用户进行身份验证
 app.UseAuthorization();  // 身份授权 中间件 授权用户访问安全资源
+app.UseStaticFiles();
+
+app.UseServiceLocator();
 
 // 自定义中间件
 //app.Use(async (context, next) =>
@@ -147,6 +162,9 @@ app.MapGet("/api/heart", () =>
 })
 .WithName("Heart");
 
+
+
+LoggerService.Info("张亮大帅逼！AAAAA");
 
 app.Run();
 //app.Run(async context =>

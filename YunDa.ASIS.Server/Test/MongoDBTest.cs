@@ -106,7 +106,7 @@ namespace YunDa.ASIS.Server.Test
             // UpdateOne
             {
                 var filter = Builders<User>.Filter.Eq("Name", "zhangliang");
-                var update = Builders<User>.Update.Set("Password", "yunda123");
+                var update = Builders<User>.Update.Set("Password", "yunda123").Set(u => u.Name, "lianggan13");
                 users.UpdateOne(filter, update);
             }
             // UpdateMany
@@ -129,7 +129,8 @@ namespace YunDa.ASIS.Server.Test
 
             {
                 var builder = Builders<User>.Filter;
-                var filter1 = builder.Lte("No", 13);
+                //var filter1 = builder.Lte("No", 13);
+                var filter1 = builder.Lte(u => u.No, 13);
                 var filter2 = builder.Empty;
                 var filter = builder.And(filter1, filter2); //  var filter = filter1 & filter2;
                 var list = users.Find(filter).ToEnumerable();
