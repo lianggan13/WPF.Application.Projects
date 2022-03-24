@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System.Security.Claims;
 using YunDa.ASIS.Server.Filters;
 using YunDa.ASIS.Server.Providers;
 using YunDa.ASIS.Server.Services;
+using YunDa.ASIS.Server.Utility.JsonTypeConverter;
+using static System.Net.Mime.MediaTypeNames;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,24 +63,41 @@ builder.Services.AddSingleton<MongoDbService>();
 builder.Services.AddSingleton<LoggerService>();
 
 
-//builder.Services.adds
-//builder.Services.AddAuthentication(options=>options.AddScheme())
 // 注册
 builder.Services.AddTransient<IAuthorizationPolicyProvider, CustomAuthorizationPolicyProvider>();
-// 选择何种方式 鉴权(身份验证)
-builder.Services.AddAuthentication(
-    options =>
-    {
-        options.RequireAuthenticatedSignIn = false;
-        options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    })
-    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-    {
-        options.LoginPath = "";
-    }); // 注册 cookie 认证服务
+// 选择何种方式 鉴权(身份验证) 注册 cookie 认证服务
+
+// Config Authentication
+builder.Services.AddAuthentication(option =>
+{
+    //options.RequireAuthenticatedSignIn = false;
+    option.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    option.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    option.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    option.DefaultForbidScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    option.DefaultSignOutScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+}).AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, option =>
+{
+    //如果没有找到用户信息--->鉴权失败-->授权失败--->就跳转到指定的  [HttpGet] Action
+    option.LoginPath = "/api/user/login";
+    option.AccessDeniedPath = "/api/exception/unauthorized";
+});
+
+// Config Authorization
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy("UserPolicy", config =>
+    {
+        config.RequireAssertion(context =>
+        {
+            bool pass1 = context.User.HasClaim(c => c.Type == ClaimTypes.Role);
+            bool pass2 = context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value == "Admin";
+            bool pass3 = context.User.Claims.Any(c => c.Type == ClaimTypes.Name);
+            bool pass = pass1 && pass2 && pass3;
+            return pass;
+        });
+    });
+
     // 验证策略(多个)
     options.AddPolicy("testpolicy", builder =>
     {
@@ -87,6 +109,12 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
+builder.Services.AddRouting(options =>
+{
+    options.LowercaseUrls = true;
+});
+
+#region Controller Filter Json
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<CustomGlobalActionFilterAttribute>(); // 全局注册 Filter
@@ -96,11 +124,13 @@ builder.Services.AddControllers(options =>
     options.SerializerSettings.ContractResolver = new DefaultContractResolver();
 
     // Configure a custom converter
-    //options.SerializerSettings.Converters.Add(new MyCustomJsonConverter());
+    options.SerializerSettings.Converters.Add(new DateTimeJsonConverter());
+    options.SerializerSettings.Converters.Add(new DateTimeOffsetJsonConverter());
 });
-//.AddJsonOptions(
+//.AddJsonOptions( 框架自带 Json
 //        options => /*options.JsonSerializerOptions.PropertyNamingPolicy = null */);
 
+#endregion
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -112,10 +142,6 @@ builder.Services.AddSwaggerGen(c =>
 
 
 var app = builder.Build();
-
-
-
-var db = app.Services.GetService<MongoDbService>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -131,15 +157,25 @@ else
     app.UseSwaggerUI();
 
     app.UseExceptionHandler("/Error"); // UseExceptionHandler 是添加到管道中的第一个中间件组件。因此，异常处理程序中间件会捕获以后调用中发生的任何异常
-    app.UseHsts();
+    app.UseHsts(); // https 相关
 }
 
 app.UseRouting();        // 路由 中间件
 app.UseAuthentication(); // 身份验证 中间件 在允许用户访问安全资源之前尝试对用户进行身份验证
 app.UseAuthorization();  // 身份授权 中间件 授权用户访问安全资源
 app.UseStaticFiles();
-
+app.UseFileServer(enableDirectoryBrowsing: true); // 文件浏览
 app.UseServiceLocator();
+//app.UseEndpoints(options =>
+//{
+//    options.MapDefaultControllerRoute(); // {controller=Home}/{action=Index}/{id?}
+//    options.MapControllers();
+//});
+
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=user}/{action=index}/{id?}");
 
 // 自定义中间件
 //app.Use(async (context, next) =>
@@ -154,6 +190,55 @@ app.UseServiceLocator();
 
 app.MapControllers();
 
+
+#region Exception Handler
+//app.UseStatusCodePages(Application.Json, "Status Code Page: {0}");
+//app.UseStatusCodePages(async statusCodeContext =>
+//{
+//    // using static System.Net.Mime.MediaTypeNames;
+//    statusCodeContext.HttpContext.Response.ContentType = Application.Json;
+
+//    await statusCodeContext.HttpContext.Response.WriteAsync(
+//        $"Status Code Page: {statusCodeContext.HttpContext.Response.StatusCode}");
+//});
+//app.UseStatusCodePagesWithRedirects("/StatusCode/{0}");
+//app.UseStatusCodePagesWithReExecute("/StatusCode/{0}");
+//app.UseStatusCodePagesWithReExecute("/StatusCode", "?statusCode={0}");
+//app.UseStatusCodePagesWithReExecute("/Error/{0}");//只要不是200 都能进来
+
+app.UseExceptionHandler(config =>
+{
+    config.Run(async context =>
+    {
+        //context.Response.StatusCode = 500;
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = Application.Json; //  Text.Plain
+
+        LoggerService.Error((context.Request.Method).PadLeft(5) + context.Request.Path);
+
+        string url = string.Empty;
+        var statusCodeReExecuteFeature =
+                context.Features.Get<IStatusCodeReExecuteFeature>();
+        if (statusCodeReExecuteFeature != null)
+        {
+            url = string.Join(
+               statusCodeReExecuteFeature.OriginalPathBase,
+               statusCodeReExecuteFeature.OriginalPath,
+               statusCodeReExecuteFeature.OriginalQueryString);
+        }
+
+        var error = context.Features.Get<IExceptionHandlerFeature>();
+        if (error != null)
+        {
+            var ex = error.Error;
+            var errorStr = JsonConvert.SerializeObject(ex);
+            await context.Response.WriteAsync(errorStr);
+            LoggerService.Error(url, ex);
+        }
+    });
+});
+
+#endregion
 
 // no use controller
 app.MapGet("/api/heart", () =>

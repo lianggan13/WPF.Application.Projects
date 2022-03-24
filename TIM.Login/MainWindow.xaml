@@ -23,7 +23,6 @@
             NonClientFrameEdges="None"
             ResizeBorderThickness="0"
             UseAeroCaptionButtons="False" />
-       
     </WindowChrome.WindowChrome>
   
     <Window.DataContext>
