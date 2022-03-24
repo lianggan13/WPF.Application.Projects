@@ -102,11 +102,11 @@ builder.Services.AddControllers(options =>
 //        options => /*options.JsonSerializerOptions.PropertyNamingPolicy = null */);
 
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen();
+
 builder.Services.AddSwaggerGen(c =>
 {
+    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     //c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 });
 
@@ -163,8 +163,6 @@ app.MapGet("/api/heart", () =>
 .WithName("Heart");
 
 
-
-LoggerService.Info("ÕÅÁÁ´óË§±Æ£¡AAAAA");
 
 app.Run();
 //app.Run(async context =>
