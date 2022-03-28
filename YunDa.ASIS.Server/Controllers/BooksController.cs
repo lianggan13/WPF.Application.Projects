@@ -21,8 +21,6 @@ namespace YunDa.ASIS.Server.Controllers
 
         }
 
-        [Authorize(Policy = "testpolicy")] // 可直接放置在控制上
-        //[Authorize(Roles = "admin,user")]
         [HttpGet]
         public async Task<List<Book>> Get() =>
             await _booksService.GetAsync();
@@ -48,7 +46,6 @@ namespace YunDa.ASIS.Server.Controllers
 
         [HttpGet]
         [Route("/api/[controller]/TestPolicy")]
-        [Authorize(Policy = "testpolicy2-test2")] // 可直接放置在控制上
         public async Task<IActionResult> TestPolicy()
         {
             return await Task.FromResult(Ok());

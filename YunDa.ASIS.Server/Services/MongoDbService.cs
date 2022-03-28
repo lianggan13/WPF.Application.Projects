@@ -26,19 +26,19 @@ namespace YunDa.ASIS.Server.Services
         }
 
         private readonly MongoClient? Client;
-        private readonly IMongoDatabase? DataBase;
+        private readonly IMongoDatabase? Database;
 
         public MongoDbService(IOptions<MongoDbSettings> options)
         {
             Client = new MongoClient(
               options.Value.ConnectionString);
 
-            DataBase = Client.GetDatabase(
+            Database = Client.GetDatabase(
                options.Value.DatabaseName);
 
 
-            UserColl = DataBase.GetCollection<User>(ASIS_User);
-            RoleColl = DataBase.GetCollection<Role>(ASIS_Role);
+            UserColl = Database.GetCollection<User>(ASIS_User);
+            RoleColl = Database.GetCollection<Role>(ASIS_Role);
             //var s = UserColl.Find(FilterDefinition<User>.Empty).CountDocuments();
         }
 

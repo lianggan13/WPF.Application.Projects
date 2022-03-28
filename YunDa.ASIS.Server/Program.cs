@@ -1,12 +1,18 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.Security.Claims;
 using YunDa.ASIS.Server.Filters;
+using YunDa.ASIS.Server.Filters.AuthorizeAttr;
+using YunDa.ASIS.Server.Middleware;
+using YunDa.ASIS.Server.MinimalApis;
 using YunDa.ASIS.Server.Providers;
 using YunDa.ASIS.Server.Services;
+using YunDa.ASIS.Server.Services.JWT;
 using YunDa.ASIS.Server.Utility.JsonTypeConverter;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -20,25 +26,20 @@ var builder = WebApplication.CreateBuilder(args);
 //});
 
 #region Log4Net
+builder.Host.ConfigureLogging(logging =>
 {
-    ////Nuget 包引入：
-    ////1.Log4Net
-    ////2.Microsoft.Extensions.Logging.Log4Net.AspNetCore
-    builder.Services.AddLogging(cfg =>
+    logging.ClearProviders();
+    //logging.AddConsole();
+});
+builder.Services.AddLogging(cfg =>
+{
+    cfg.AddLog4Net(new Log4NetProviderOptions()
     {
-        //默认的配置文件路径是在根目录，且文件名为log4net.config
-        //如果文件路径或名称有变化，需要重新设置其路径或名称
-        //比如在项目根目录下创建一个名为cfg的文件夹，将log4net.config文件移入其中，并改名为log.config
-        //则需要使用下面的代码来进行配置
-        cfg.AddLog4Net(new Log4NetProviderOptions()
-        {
-            Log4NetConfigFileName = "ConfigFiles/log4net.config",
-            Watch = true
-        });
-
+        Log4NetConfigFileName = "ConfigFiles/log4net.config",
+        Watch = true,
     });
-}
-
+});
+builder.Services.AddSingleton<LoggerService>();
 #endregion
 
 #region NLogin
@@ -54,19 +55,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 #region Database
 builder.Services.Configure<MongoDbSettings>(
-builder.Configuration.GetSection("MongoDbSettings")
-);
+    builder.Configuration.GetSection("MongoDbSettings"));
+builder.Services.AddSingleton<MongoDbService>();
 #endregion
 
 builder.Services.AddSingleton<BooksService>();
-builder.Services.AddSingleton<MongoDbService>();
-builder.Services.AddSingleton<LoggerService>();
 
 
 // 注册
 builder.Services.AddTransient<IAuthorizationPolicyProvider, CustomAuthorizationPolicyProvider>();
 // 选择何种方式 鉴权(身份验证) 注册 cookie 认证服务
 
+#region Config Authentication/AddAuthorization
 // Config Authentication
 builder.Services.AddAuthentication(option =>
 {
@@ -83,12 +83,44 @@ builder.Services.AddAuthentication(option =>
     option.AccessDeniedPath = "/api/exception/unauthorized";
 });
 
+
+IConfigurationSection jwtSection = builder.Configuration.GetSection("JWTTokenOptions");
+//JWTTokenOptions tokenOptions = new JWTTokenOptions();
+//builder.Configuration.Bind("JWTTokenOptions", tokenOptions);
+JWTTokenOptions tokenOptions = jwtSection.Get<JWTTokenOptions>();
+
+builder.Services.Configure<JWTTokenOptions>(jwtSection);
+builder.Services.AddTransient<IJWTAuthorizeService, JWTAuthorizHSService>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // 配置 鉴权验证 规则
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            //JWT有一些默认的属性，就是给鉴权时就可以筛选了
+            ValidateIssuer = true,//是否验证Issuer
+            ValidateAudience = true,//是否验证Audience
+            ValidateLifetime = true,//是否验证失效时间
+            ValidateIssuerSigningKey = true,//是否验证SecurityKey
+            ValidAudience = tokenOptions.Audience,//
+            ValidIssuer = tokenOptions.Issuer,//Issuer，这两项和前面签发jwt的设置一致
+            IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(tokenOptions.SecurityKey))//拿到SecurityKey 
+        };
+    }
+);
+
+
 // Config Authorization
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("UserPolicy", config =>
+    options.AddPolicy(AuthorizePolicy.UserPolicy, policyBuilder =>
     {
-        config.RequireAssertion(context =>
+        policyBuilder.RequireRole("Admin");
+        policyBuilder.RequireClaim("Account", "Administrator");
+        policyBuilder.AddRequirements(new AuthKeyRequirement());
+
+        policyBuilder.RequireAssertion(context =>
         {
             bool pass1 = context.User.HasClaim(c => c.Type == ClaimTypes.Role);
             bool pass2 = context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value == "Admin";
@@ -97,17 +129,10 @@ builder.Services.AddAuthorization(options =>
             return pass;
         });
     });
-
-    // 验证策略(多个)
-    options.AddPolicy("testpolicy", builder =>
-    {
-        builder.RequireClaim("user", "delete");
-    });
-    options.AddPolicy("testpolicy1", builder =>
-    {
-        builder.RequireRole("admin");
-    });
 });
+builder.Services.AddTransient<IAuthorizationHandler, AuthKeyHander>();
+
+#endregion
 
 builder.Services.AddRouting(options =>
 {
@@ -117,7 +142,7 @@ builder.Services.AddRouting(options =>
 #region Controller Filter Json
 builder.Services.AddControllers(options =>
 {
-    options.Filters.Add<CustomGlobalActionFilterAttribute>(); // 全局注册 Filter
+    options.Filters.Add<CustomAllActionResultFilterAttribute>(); // 全局注册 Filter
 }).AddNewtonsoftJson(options =>
 {
     // Use the default property (Pascal) casing
@@ -132,11 +157,12 @@ builder.Services.AddControllers(options =>
 
 #endregion
 
+
+
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
 {
-    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     //c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 });
 
@@ -146,6 +172,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     app.UseSwagger();
     app.UseSwaggerUI();
 
@@ -188,8 +215,10 @@ app.MapControllerRoute(
 //});
 //app.UseMiddleware<LogsMiddleware>(); //添加日志记录中间件
 
-app.MapControllers();
+app.UseMiddleware<MinimalApiMiddleware>();
 
+app.MapControllers();
+app.UseUserApiExt();
 
 #region Exception Handler
 //app.UseStatusCodePages(Application.Json, "Status Code Page: {0}");
@@ -239,15 +268,6 @@ app.UseExceptionHandler(config =>
 });
 
 #endregion
-
-// no use controller
-app.MapGet("/api/heart", () =>
-{
-    return "ok";
-})
-.WithName("Heart");
-
-
 
 app.Run();
 //app.Run(async context =>

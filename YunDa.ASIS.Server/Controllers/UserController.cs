@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using System.Security.Claims;
+using YunDa.ASIS.Server.Filters.AuthorizeAttr;
 using YunDa.ASIS.Server.Models;
 using YunDa.ASIS.Server.Services;
 
@@ -15,9 +17,9 @@ namespace YunDa.ASIS.Server.Controllers
     {
         private readonly MongoDbService dbService;
 
-        public UserController(MongoDbService dbContext)
+        public UserController(MongoDbService dbService)
         {
-            this.dbService = dbContext;
+            this.dbService = dbService;
         }
 
         [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme, Roles = "Admin,User")]
@@ -27,6 +29,24 @@ namespace YunDa.ASIS.Server.Controllers
             IEnumerable<User> users = dbService.UserColl.Find(_ => true).ToEnumerable();
             return await Task.FromResult(Json(users));
         }
+
+        [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme, Policy = AuthorizePolicy.UserPolicy)]
+        [HttpGet]
+        public async Task<IActionResult> Query2()
+        {
+            IEnumerable<User> users = dbService.UserColl.Find(_ => true).ToEnumerable();
+            return await Task.FromResult(Json(users));
+        }
+
+
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)] // Need jwt token: Postman -> Authorization -> Bearer Token
+        [HttpGet]
+        public async Task<IActionResult> Query3()
+        {
+            IEnumerable<User> users = dbService.UserColl.Find(_ => true).ToEnumerable();
+            return await Task.FromResult(Json(users));
+        }
+
 
         [HttpGet]
         public async Task<IActionResult> Login()
@@ -51,7 +71,8 @@ namespace YunDa.ASIS.Server.Controllers
                     new Claim("password",password),//可以写入任意数据
                     new Claim("Account","Administrator"),
                     new Claim("role","admin"),
-                    new Claim("QQ","1030499676")
+                    new Claim("QQ","1030499676"),
+                    //new Claim("AuthKey","8888888888888888")
                 };
                 ClaimsPrincipal userPrincipal = new ClaimsPrincipal(new ClaimsIdentity(claims, "Customer"));
                 HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, userPrincipal, new AuthenticationProperties
@@ -95,9 +116,9 @@ namespace YunDa.ASIS.Server.Controllers
                 IsUpsert = true // 没有，就插入
             };
 
-            UpdateResult reuslt2 = dbService.UserColl.UpdateOne(filter, udef, uopt);
-
-            return
+            UpdateResult result = dbService.UserColl.UpdateOne(filter, udef, uopt);
+            JsonResult jr = Json(result);
+            return await Task.FromResult(jr);
         }
 
     }
