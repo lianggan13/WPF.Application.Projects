@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using System.Security.Claims;
+using YunDa.ASIS.Server.Filters;
 using YunDa.ASIS.Server.Filters.AuthorizeAttr;
 using YunDa.ASIS.Server.Models;
 using YunDa.ASIS.Server.Services;
@@ -22,6 +23,10 @@ namespace YunDa.ASIS.Server.Controllers
             this.dbService = dbService;
         }
 
+        //[TypeFilter(typeof(CustomLogActionFilterAttribute))]
+        //[ServiceFilter(typeof(CustomLogActionFilterAttribute))]   //还需要注册服务
+        //[TypeFilter(typeof(CustomLogAsyncActionFilterAttribute))]
+        [CustomFilterFactory(typeof(CustomLogAsyncActionFilterAttribute))]
         [Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme, Roles = "Admin,User")]
         [HttpGet]
         public async Task<IActionResult> Query()

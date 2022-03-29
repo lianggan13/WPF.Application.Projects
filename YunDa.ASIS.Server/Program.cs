@@ -1,8 +1,18 @@
+using Advanced.NET6.Business.Interfaces;
+using Advanced.NET6.Business.Services;
+using Advanced.NET6.Framework.AutofaExt.AOP;
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using Autofac.Extras.DynamicProxy;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.Security.Claims;
@@ -10,9 +20,9 @@ using YunDa.ASIS.Server.Filters;
 using YunDa.ASIS.Server.Filters.AuthorizeAttr;
 using YunDa.ASIS.Server.Middleware;
 using YunDa.ASIS.Server.MinimalApis;
-using YunDa.ASIS.Server.Providers;
 using YunDa.ASIS.Server.Services;
 using YunDa.ASIS.Server.Services.JWT;
+using YunDa.ASIS.Server.Utility.Autofac;
 using YunDa.ASIS.Server.Utility.JsonTypeConverter;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -60,11 +70,6 @@ builder.Services.AddSingleton<MongoDbService>();
 #endregion
 
 builder.Services.AddSingleton<BooksService>();
-
-
-// 注册
-builder.Services.AddTransient<IAuthorizationPolicyProvider, CustomAuthorizationPolicyProvider>();
-// 选择何种方式 鉴权(身份验证) 注册 cookie 认证服务
 
 #region Config Authentication/AddAuthorization
 // Config Authentication
@@ -157,14 +162,96 @@ builder.Services.AddControllers(options =>
 
 #endregion
 
-
-
-builder.Services.AddEndpointsApiExplorer();
-
+#region SwaggerGen
 builder.Services.AddSwaggerGen(c =>
 {
-    //c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+    c.CustomSchemaIds(t => t.FullName);
+    //[ApiExplorerSettings(GroupName = "V1"))]
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Shen12DP",
+        Version = "v1",
+        Description = "Swagger for Api Test",
+    });
+    //  为Swagger JSON and UI设置xml文档注释路径 
+    //string basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);//获取应用程序所在目录（绝对，不受工作目录影响，建议采用此方法获取路径）
+    string basePath = AppContext.BaseDirectory;
+    string xmlName = typeof(Program).Assembly.GetName().Name + ".xml";
+    // 项目属性 -> 文档文件 -> [√]生成包含 API 文档的文件
+    var filePath = Path.Combine(basePath, xmlName);
+    c.IncludeXmlComments(filePath);
 });
+
+#endregion
+
+#region Cors
+builder.Services.AddCors(policy =>
+{
+    policy.AddPolicy("CorsPolicy", opt => opt
+    .AllowAnyOrigin()
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .WithExposedHeaders("X-Pagination"));
+});
+#endregion
+
+#region Autofac AOP
+// NutGet: Autofac、Castle.Core、Autofac.Extras.DynamicProx
+builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory()); // 通过工厂替换，把Autofac整合进来
+builder.Host.ConfigureContainer<ContainerBuilder>((containerBuilder) =>
+{
+    containerBuilder.RegisterType<CusotmInterceptor>();
+    containerBuilder.RegisterType<CusotmLogInterceptor>();
+    containerBuilder.RegisterType<CusotmCacheInterceptor>();
+
+    containerBuilder.RegisterType<Microphone>().As<IMicrophone>();
+    containerBuilder.RegisterType<Power>().As<IPower>();
+    containerBuilder.RegisterType<Headphone>().As<IHeadphone>();
+
+    containerBuilder.RegisterType<ApplePhone>().As<IPhone>()
+        //.EnableClassInterceptors(); //当前的配置 要支持AOP扩展--通过类来支持 virtual 方法
+        //.EnableInterfaceInterceptors() // 当前的配置 要支持AOP扩展--通过 接口 来支持
+        .EnableInterfaceInterceptors(new Castle.DynamicProxy.ProxyGenerationOptions()
+        {
+            // use InterceptorSelector
+            Selector = new CustomInterceptorSelector()
+        })
+        ;
+
+    // 对指定的类型 指定 拦截器
+    //containerBuilder.RegisterAssemblyTypes(Assembly.Load("YunDa.ASIS.Server"))
+    containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
+        .Where(s =>
+        {
+            var pass = s.Name.Contains("Power");
+            return pass;
+        })
+        .PropertiesAutowired()
+        .AsImplementedInterfaces()
+        .EnableInterfaceInterceptors()
+        .InterceptedBy(typeof(CusotmLogInterceptor)) // 指定拦截器
+        ;
+
+
+    // 注册 每个 Controller, 并开启属性注入功能
+    var ctrllerBaseType = typeof(ControllerBase);
+    containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
+        .Where(t => ctrllerBaseType.IsAssignableFrom(t) && t != ctrllerBaseType)
+        .PropertiesAutowired(new CusotmPropertySelector());
+    #region another way
+    //var ctrllersTypesInDll = typeof(Program).Assembly.GetExportedTypes()
+    //        .Where(t => ctrllerBaseType.IsAssignableFrom(t)).ToArray();
+
+    //containerBuilder.RegisterTypes(ctrllersTypesInDll)
+    //    .PropertiesAutowired(new CusotmPropertySelector());
+    #endregion
+});
+
+// 支持控制器的实例 由 IOC容器--Autofac 进行创建
+builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
+#endregion
+
+builder.Services.AddEndpointsApiExplorer();
 
 
 var app = builder.Build();
@@ -175,14 +262,10 @@ if (app.Environment.IsDevelopment())
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     app.UseSwagger();
     app.UseSwaggerUI();
-
     app.UseDeveloperExceptionPage();
 }
 else
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-
     app.UseExceptionHandler("/Error"); // UseExceptionHandler 是添加到管道中的第一个中间件组件。因此，异常处理程序中间件会捕获以后调用中发生的任何异常
     app.UseHsts(); // https 相关
 }
@@ -217,8 +300,10 @@ app.MapControllerRoute(
 
 app.UseMiddleware<MinimalApiMiddleware>();
 
+app.UseCors("CorsPolicy");
 app.MapControllers();
-app.UseUserApiExt();
+app.UseUserMiniApi();
+app.UsePhoneMiniApi();
 
 #region Exception Handler
 //app.UseStatusCodePages(Application.Json, "Status Code Page: {0}");

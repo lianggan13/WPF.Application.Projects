@@ -9,9 +9,9 @@ using YunDa.ASIS.Server.Services;
 
 namespace YunDa.ASIS.Server.MinimalApis
 {
-    public static class UserApiExt
+    public static class UserMiniApi
     {
-        public static void UseUserApiExt(this WebApplication app)
+        public static void UseUserMiniApi(this WebApplication app)
         {
             app.MapGet("/api/user/query4",
             //[Authorize(AuthorizePolicy.UserPolicy)]

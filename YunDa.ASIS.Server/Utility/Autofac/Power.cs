@@ -1,10 +1,5 @@
 ﻿
-using Advanced.NET6.Business.Interfaces; 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Advanced.NET6.Business.Interfaces;
 
 namespace Advanced.NET6.Business.Services
 {
@@ -16,19 +11,29 @@ namespace Advanced.NET6.Business.Services
         public Power(IMicrophone microphone)
         {
             Console.WriteLine($"{this.GetType().Name}被构造。。");
-            this.Microphone= microphone; 
+            this.Microphone = microphone;
         }
 
         public Power(int microphone)
         {
-            Console.WriteLine($"{this.GetType().Name}被构造。。"); 
+            Console.WriteLine($"{this.GetType().Name}被构造。。");
         }
 
         public Power(IMicrophone microphone, IMicrophone microphone2)
         {
             Console.WriteLine($"{this.GetType().Name}被构造。。");
             this.Microphone = microphone;
-            this.Microphone2= microphone2;
+            this.Microphone2 = microphone2;
+        }
+
+        public void Open()
+        {
+            Console.WriteLine($"{this.GetType().Name} {nameof(Open)}...");
+        }
+
+        public void Close()
+        {
+            Console.WriteLine($"{this.GetType().Name} {nameof(Close)}...");
         }
     }
 }

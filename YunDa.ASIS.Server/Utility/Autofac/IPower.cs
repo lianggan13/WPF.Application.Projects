@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Advanced.NET6.Business.Interfaces
+﻿namespace Advanced.NET6.Business.Interfaces
 {
+    //[Intercept(typeof(CusotmLogInterceptor))]
     public interface IPower
     {
-
+        void Open();
+        void Close();
     }
 }

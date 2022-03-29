@@ -1,9 +1,9 @@
 ﻿using Advanced.NET6.Business.Interfaces;
 
-
 namespace Advanced.NET6.Business.Services
 {
-    //[Intercept(typeof(CusotmInterceptor))]
+    //[Intercept(typeof(CusotmInterceptor))] // use EnableClassInterceptors
+
     public class ApplePhone : IPhone
     {
         public IMicrophone Microphone { get; set; }

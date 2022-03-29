@@ -14,6 +14,12 @@ namespace YunDa.ASIS.Server.Controllers
             _iJWTService = customJWTService;
         }
 
+        /// <summary>
+        /// 获取 JWT 授权 Token
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="password"></param>
+        /// <returns></returns>
         [Route("Login")]
         [HttpPost]
         public string Login(string name, string password)
