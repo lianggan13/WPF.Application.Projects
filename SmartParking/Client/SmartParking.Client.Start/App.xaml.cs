@@ -1,12 +1,12 @@
-﻿using System.Windows;
-using System.Windows.Threading;
-using Prism.Ioc;
+﻿using Prism.Ioc;
 using Prism.Modularity;
 using Prism.Unity;
 using SmartParking.Client.BLL;
 using SmartParking.Client.DAL;
 using SmartParking.Client.Modules;
 using SmartParking.Client.Start.Views;
+using System.Windows;
+using System.Windows.Threading;
 
 namespace SmartParking.Client.Start
 {
@@ -15,7 +15,10 @@ namespace SmartParking.Client.Start
     /// </summary>
     public partial class App : PrismApplication
     {
-
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+        }
         protected override void InitializeShell(Window shell)
         {
 
