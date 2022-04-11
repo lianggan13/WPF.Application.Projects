@@ -43,11 +43,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample.WebSocket.Client", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.WebSocket.Server", "Sample\Sample.WebSocket.Server\Sample.WebSocket.Server.csproj", "{01470E0A-D0D2-4D19-ADA5-5D5B3AAE6357}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.NetSocket.Client", "Sample\Sample.NetSocket.Client\Sample.NetSocket.Client.csproj", "{DB499873-3F11-4777-A8AD-02BABAF39D8B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample.NetSocket.Client", "Sample\Sample.NetSocket.Client\Sample.NetSocket.Client.csproj", "{DB499873-3F11-4777-A8AD-02BABAF39D8B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.NetSocket.Server", "Sample\Sample.NetSocket.Server\Sample.NetSocket.Server.csproj", "{0D0F3A50-5A02-40ED-8ECF-65D6F5372A98}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample.NetSocket.Server", "Sample\Sample.NetSocket.Server\Sample.NetSocket.Server.csproj", "{0D0F3A50-5A02-40ED-8ECF-65D6F5372A98}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.NetSocket.Utility", "Sample\Sample.NetSocket.Utility\Sample.NetSocket.Utility.csproj", "{A34B653B-915A-4760-A2A3-0D3B59AD7059}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample.NetSocket.Utility", "Sample\Sample.NetSocket.Utility\Sample.NetSocket.Utility.csproj", "{A34B653B-915A-4760-A2A3-0D3B59AD7059}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.Camera", "Sample\Sample.Camera\Sample.Camera.csproj", "{F9C64B61-3DE9-4DD1-883A-2364DC37005C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -287,6 +289,18 @@ Global
 		{A34B653B-915A-4760-A2A3-0D3B59AD7059}.Release|x64.Build.0 = Release|Any CPU
 		{A34B653B-915A-4760-A2A3-0D3B59AD7059}.Release|x86.ActiveCfg = Release|Any CPU
 		{A34B653B-915A-4760-A2A3-0D3B59AD7059}.Release|x86.Build.0 = Release|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Debug|x64.Build.0 = Debug|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Debug|x86.Build.0 = Debug|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Release|x64.ActiveCfg = Release|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Release|x64.Build.0 = Release|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Release|x86.ActiveCfg = Release|Any CPU
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -312,6 +326,7 @@ Global
 		{DB499873-3F11-4777-A8AD-02BABAF39D8B} = {C097F097-3615-41B1-9CBB-6E96674C656E}
 		{0D0F3A50-5A02-40ED-8ECF-65D6F5372A98} = {C097F097-3615-41B1-9CBB-6E96674C656E}
 		{A34B653B-915A-4760-A2A3-0D3B59AD7059} = {C097F097-3615-41B1-9CBB-6E96674C656E}
+		{F9C64B61-3DE9-4DD1-883A-2364DC37005C} = {C097F097-3615-41B1-9CBB-6E96674C656E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {652EA9B3-A2C7-49F4-9928-83B50F53DC5D}
