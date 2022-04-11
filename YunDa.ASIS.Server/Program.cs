@@ -1,39 +1,10 @@
-using Advanced.NET6.Business.Interfaces;
-using Advanced.NET6.Business.Services;
-using Advanced.NET6.Framework.AutofaExt.AOP;
-using Autofac;
-using Autofac.Extensions.DependencyInjection;
-using Autofac.Extras.DynamicProxy;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using System.Security.Claims;
-using YunDa.ASIS.Server.Filters;
-using YunDa.ASIS.Server.Filters.AuthorizeAttr;
-using YunDa.ASIS.Server.Middleware;
-using YunDa.ASIS.Server.MinimalApis;
-using YunDa.ASIS.Server.Services;
-using YunDa.ASIS.Server.Services.JWT;
-using YunDa.ASIS.Server.Utility.Autofac;
-using YunDa.ASIS.Server.Utility.JsonTypeConverter;
-using static System.Net.Mime.MediaTypeNames;
-
-var builder = WebApplication.CreateBuilder(args);
-
 // Add services to the container.
 
 //builder.Services.Configure<IISOptions>(options =>
 //{
 //    options.ForwardClientCertificate = true;
 //});
+var builder = WebApplication.CreateBuilder(args);
 
 #region Log4Net
 builder.Host.ConfigureLogging(logging =>
@@ -262,7 +233,10 @@ if (app.Environment.IsDevelopment())
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseDeveloperExceptionPage();
+
+    var options = new DeveloperExceptionPageOptions();
+    options.SourceCodeLineCount = 13;
+    app.UseDeveloperExceptionPage(options); // 异常页面
 }
 else
 {
@@ -273,7 +247,8 @@ else
 app.UseRouting();        // 路由 中间件
 app.UseAuthentication(); // 身份验证 中间件 在允许用户访问安全资源之前尝试对用户进行身份验证
 app.UseAuthorization();  // 身份授权 中间件 授权用户访问安全资源
-app.UseStaticFiles();
+app.UseDefaultFiles();   // 默认文件中间件
+app.UseStaticFiles();    // 静态文件中间件
 app.UseFileServer(enableDirectoryBrowsing: true); // 文件浏览
 app.UseServiceLocator();
 //app.UseEndpoints(options =>
@@ -354,8 +329,14 @@ app.UseExceptionHandler(config =>
 
 #endregion
 
+app.Use(async (context, next) =>
+{
+    context.Response.ContentType = $"{Text.Plain};chartset=utf-8";
+    // beofre ...
+    LoggerService.Info("await next() before...");
+    await next(); // call next middleware
+    // after ...
+    LoggerService.Info("await next() after...");
+});
+
 app.Run();
-//app.Run(async context =>
-//{
-//    await context.Response.WriteAsync("Append response end.");
-//});
