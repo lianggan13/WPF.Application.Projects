@@ -1,14 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
-using System.Security.Claims;
-using YunDa.ASIS.Server.Filters;
-using YunDa.ASIS.Server.Filters.AuthorizeAttr;
 using YunDa.ASIS.Server.Models;
-using YunDa.ASIS.Server.Services;
 
 namespace YunDa.ASIS.Server.Controllers
 {
