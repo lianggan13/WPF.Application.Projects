@@ -1,2 +1,0 @@
-﻿debugger
-alert("hello")
