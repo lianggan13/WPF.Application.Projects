@@ -1,3 +1,59 @@
+using Microsoft.AspNetCore.Http.Connections;
+using SignalRDemo1.Hubs;
+using SignalRNotify;
+
+
+{
+
+    var builder1 = WebApplication.CreateBuilder(args);
+    #region SignalR
+    builder1.Services.AddSignalR(hubOptions =>
+    {
+        hubOptions.EnableDetailedErrors = true;
+        hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(13);
+    });
+    #endregion
+    // Add services to the container.
+    builder1.Services.AddRazorPages();
+
+    var app1 = builder1.Build();
+
+    // Configure the HTTP request pipeline.
+    if (!app1.Environment.IsDevelopment())
+    {
+        app1.UseExceptionHandler("/Error");
+    }
+    app1.UseStaticFiles();
+
+    app1.UseRouting();
+
+    app1.UseAuthorization();
+
+    app1.MapRazorPages();
+
+    app1.UseEndpoints(endpoints =>
+    {
+        //endpoints.MapRazorPages();
+        //endpoints.MapControllers();
+        //endpoints.MapDefaultControllerRoute(); // {controller=Home}/{action=Index}/{id?}
+
+        endpoints.MapHub<ChatHub>("/chatHub", options =>
+        {
+            options.Transports =
+                HttpTransportType.WebSockets |
+                HttpTransportType.LongPolling |
+                HttpTransportType.ServerSentEvents;
+        });
+        endpoints.MapHub<NotificationHub>("/notificationHub");
+    });
+
+
+    app1.Run();
+
+}
+
+
+
 // Add services to the container.
 
 //builder.Services.Configure<IISOptions>(options =>
@@ -5,6 +61,8 @@
 //    options.ForwardClientCertificate = true;
 //});
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRazorPages();
 
 #region Log4Net
 builder.Host.ConfigureLogging(logging =>
@@ -116,7 +174,8 @@ builder.Services.AddRouting(options =>
 });
 
 #region Controller Filter Json
-builder.Services.AddControllers(options =>
+//builder.Services.AddControllers(options =>
+builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<CustomAllActionResultFilterAttribute>(); // 全局注册 Filter
 }).AddNewtonsoftJson(options =>
@@ -222,6 +281,15 @@ builder.Host.ConfigureContainer<ContainerBuilder>((containerBuilder) =>
 builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
 #endregion
 
+#region SignalR
+builder.Services.AddSignalR(hubOptions =>
+{
+    hubOptions.EnableDetailedErrors = true;
+    hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(13);
+});
+#endregion
+
+
 builder.Services.AddEndpointsApiExplorer();
 
 
@@ -244,17 +312,18 @@ else
     app.UseHsts(); // https 相关
 }
 
+app.UseCors("CorsPolicy");
 app.UseRouting();        // 路由 中间件
 app.UseAuthentication(); // 身份验证 中间件 在允许用户访问安全资源之前尝试对用户进行身份验证
 app.UseAuthorization();  // 身份授权 中间件 授权用户访问安全资源
 app.UseDefaultFiles();   // 默认文件中间件
 app.UseStaticFiles();    // 静态文件中间件
 app.UseFileServer(enableDirectoryBrowsing: true); // 文件浏览
-app.UseServiceLocator();
+app.UseHttpsRedirection();
 //app.UseEndpoints(options =>
 //{
-//    options.MapDefaultControllerRoute(); // {controller=Home}/{action=Index}/{id?}
-//    options.MapControllers();
+//   
+//   
 //});
 
 
@@ -263,22 +332,10 @@ app.MapControllerRoute(
     pattern: "{controller=user}/{action=index}/{id?}");
 
 // 自定义中间件
-//app.Use(async (context, next) =>
-//{
-//    // Do work that doesn't write to the Response.
-//    Console.WriteLine("Do work that doesn't write to the Response");
-//    await next.Invoke();
-//    // Do loggin or other work that does't write to the Response.
-//    Console.WriteLine("Do loggin or other work that does't write to the Response.");
-//});
-//app.UseMiddleware<LogsMiddleware>(); //添加日志记录中间件
-
 app.UseMiddleware<MinimalApiMiddleware>();
 
-app.UseCors("CorsPolicy");
 app.MapControllers();
-app.UseUserMiniApi();
-app.UsePhoneMiniApi();
+app.MapRazorPages();
 
 #region Exception Handler
 //app.UseStatusCodePages(Application.Json, "Status Code Page: {0}");
@@ -329,14 +386,37 @@ app.UseExceptionHandler(config =>
 
 #endregion
 
-app.Use(async (context, next) =>
+////app.MapRazorPages();
+//app.Run();
+
+//app.Use(async (context, next) =>
+//{
+//    context.Response.ContentType = $"{Text.Plain};chartset=utf-8";
+//    // beofre ...
+//    LoggerService.Info("await next() before...");
+//    await next(); // call next middleware
+//    // after ...
+//    LoggerService.Info("await next() after...");
+//});
+
+app.UseEndpoints(endpoints =>
 {
-    context.Response.ContentType = $"{Text.Plain};chartset=utf-8";
-    // beofre ...
-    LoggerService.Info("await next() before...");
-    await next(); // call next middleware
-    // after ...
-    LoggerService.Info("await next() after...");
+    //endpoints.MapRazorPages();
+    //endpoints.MapControllers();
+    //endpoints.MapDefaultControllerRoute(); // {controller=Home}/{action=Index}/{id?}
+
+    endpoints.MapHub<ChatHub>("/chatHub", options =>
+    {
+        options.Transports =
+            HttpTransportType.WebSockets |
+            HttpTransportType.LongPolling |
+            HttpTransportType.ServerSentEvents;
+    });
+    endpoints.MapHub<NotificationHub>("/notificationHub");
 });
+
+app.UseUserMiniApi();
+app.UsePhoneMiniApi();
+app.UseServiceLocator();
 
 app.Run();
