@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace SignalRDesktop
+namespace YunDa.ASIS.Client
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -84,12 +84,12 @@ namespace SignalRDesktop
             });
 
             connection.On<string, string>("ReceiveMessage", (user, msg) =>
-             {
-                 this.Dispatcher.Invoke(() =>
-                 {
-                     txtMsg.Text += $"{user}:{msg} \r\n";
-                 });
-             });
+            {
+                this.Dispatcher.Invoke(() =>
+                {
+                    txtMsg.Text += $"{user}:{msg} \r\n";
+                });
+            });
 
             connection.On<string>("Login2", (msg) =>
             {
