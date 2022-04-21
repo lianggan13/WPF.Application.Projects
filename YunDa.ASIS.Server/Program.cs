@@ -1,58 +1,10 @@
 using Microsoft.AspNetCore.Http.Connections;
+using MQTTnet.AspNetCore;
+using MQTTnet.AspNetCore.Extensions;
+using MQTTnet.Protocol;
+using MQTTnet.Server;
 using SignalRDemo1.Hubs;
 using SignalRNotify;
-
-
-{
-
-    var builder1 = WebApplication.CreateBuilder(args);
-    #region SignalR
-    builder1.Services.AddSignalR(hubOptions =>
-    {
-        hubOptions.EnableDetailedErrors = true;
-        hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(13);
-    });
-    #endregion
-    // Add services to the container.
-    builder1.Services.AddRazorPages();
-
-    var app1 = builder1.Build();
-
-    // Configure the HTTP request pipeline.
-    if (!app1.Environment.IsDevelopment())
-    {
-        app1.UseExceptionHandler("/Error");
-    }
-    app1.UseStaticFiles();
-
-    app1.UseRouting();
-
-    app1.UseAuthorization();
-
-    app1.MapRazorPages();
-
-    app1.UseEndpoints(endpoints =>
-    {
-        //endpoints.MapRazorPages();
-        //endpoints.MapControllers();
-        //endpoints.MapDefaultControllerRoute(); // {controller=Home}/{action=Index}/{id?}
-
-        endpoints.MapHub<ChatHub>("/chatHub", options =>
-        {
-            options.Transports =
-                HttpTransportType.WebSockets |
-                HttpTransportType.LongPolling |
-                HttpTransportType.ServerSentEvents;
-        });
-        endpoints.MapHub<NotificationHub>("/notificationHub");
-    });
-
-
-    app1.Run();
-
-}
-
-
 
 // Add services to the container.
 
@@ -281,6 +233,42 @@ builder.Host.ConfigureContainer<ContainerBuilder>((containerBuilder) =>
 builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
 #endregion
 
+
+#region MQTT
+
+string hostIp = builder.Configuration["MqttOption:HostIp"];//IP地址
+int hostPort = int.Parse(builder.Configuration["MqttOption:HostPort"]);//端口号
+int timeout = int.Parse(builder.Configuration["MqttOption:Timeout"]);//超时时间
+string username = builder.Configuration["MqttOption:UserName"];//用户名
+string password = builder.Configuration["MqttOption:Password"];//密码
+
+var optionBuilder = new MqttServerOptionsBuilder()
+    .WithDefaultEndpointBoundIPAddress(System.Net.IPAddress.Parse(hostIp))
+    .WithDefaultEndpointPort(hostPort)
+    .WithDefaultCommunicationTimeout(TimeSpan.FromMilliseconds(timeout))
+    .WithConnectionValidator(t =>
+    {
+        if (t.Username != username || t.Password != password)
+        {
+            t.ReasonCode = MqttConnectReasonCode.BadUserNameOrPassword;
+        }
+        else
+        {
+            t.ReasonCode = MqttConnectReasonCode.Success;
+        }
+    });
+
+var option = optionBuilder.Build();
+
+builder.Services
+    .AddHostedMqttServer(option)
+    .AddMqttConnectionHandler()
+    .AddConnections()
+    .AddMqttTcpServerAdapter()
+    .AddMqttWebSocketServerAdapter();
+
+#endregion
+
 #region SignalR
 builder.Services.AddSignalR(hubOptions =>
 {
@@ -288,6 +276,8 @@ builder.Services.AddSignalR(hubOptions =>
     hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(13);
 });
 #endregion
+
+
 
 
 builder.Services.AddEndpointsApiExplorer();
@@ -312,20 +302,78 @@ else
     app.UseHsts(); // https 相关
 }
 
+
+#region UseMqttServer
+app.UseMqttServer(server =>
+{
+
+    server.StartedHandler = new MqttServerStartedHandlerDelegate(
+    (args) =>
+    {
+        return Task.Run(() =>
+        {
+
+        });
+    });
+
+    server.StoppedHandler = new MqttServerStoppedHandlerDelegate((args) =>
+    {
+        return Task.Run(() =>
+        {
+
+        });
+    });
+
+    server.UseClientConnectedHandler(
+    (args) =>
+    {
+        return Task.Run(() =>
+        {
+
+        });
+    });
+    server.UseClientDisconnectedHandler(
+    (args) =>
+    {
+        return Task.Run(() =>
+        {
+
+        });
+    });
+
+    //server.StartAsync();
+});
+
+//app.UseConnections(c => c.MapConnectionHandler<MqttConnectionHandler>("/data", options =>
+//{
+//    options.WebSockets.SubProtocolSelector = MQTTnet.AspNetCore.ApplicationBuilderExtensions.SelectSubProtocol;
+//}));
+#endregion
+
 app.UseCors("CorsPolicy");
 app.UseRouting();        // 路由 中间件
 app.UseAuthentication(); // 身份验证 中间件 在允许用户访问安全资源之前尝试对用户进行身份验证
 app.UseAuthorization();  // 身份授权 中间件 授权用户访问安全资源
+app.UseEndpoints(endpoints =>
+{
+    //endpoints.MapRazorPages();
+    //endpoints.MapControllers();
+    //endpoints.MapDefaultControllerRoute(); // {controller=Home}/{action=Index}/{id?}
+    endpoints.MapMqtt("/data");
+
+    endpoints.MapHub<ChatHub>("/chatHub", options =>
+    {
+        options.Transports =
+            HttpTransportType.WebSockets |
+            HttpTransportType.LongPolling |
+            HttpTransportType.ServerSentEvents;
+    });
+    endpoints.MapHub<NotificationHub>("/notificationHub");
+});
 app.UseDefaultFiles();   // 默认文件中间件
 app.UseStaticFiles();    // 静态文件中间件
 app.UseFileServer(enableDirectoryBrowsing: true); // 文件浏览
 app.UseHttpsRedirection();
-//app.UseEndpoints(options =>
-//{
-//   
-//   
-//});
-
 
 app.MapControllerRoute(
     name: "default",
@@ -336,6 +384,8 @@ app.UseMiddleware<MinimalApiMiddleware>();
 
 app.MapControllers();
 app.MapRazorPages();
+
+
 
 #region Exception Handler
 //app.UseStatusCodePages(Application.Json, "Status Code Page: {0}");
@@ -399,21 +449,6 @@ app.UseExceptionHandler(config =>
 //    LoggerService.Info("await next() after...");
 //});
 
-app.UseEndpoints(endpoints =>
-{
-    //endpoints.MapRazorPages();
-    //endpoints.MapControllers();
-    //endpoints.MapDefaultControllerRoute(); // {controller=Home}/{action=Index}/{id?}
-
-    endpoints.MapHub<ChatHub>("/chatHub", options =>
-    {
-        options.Transports =
-            HttpTransportType.WebSockets |
-            HttpTransportType.LongPolling |
-            HttpTransportType.ServerSentEvents;
-    });
-    endpoints.MapHub<NotificationHub>("/notificationHub");
-});
 
 app.UseUserMiniApi();
 app.UsePhoneMiniApi();
