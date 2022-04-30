@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.Filters;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace YunDa.ASIS.Server.Filters
 {
@@ -34,18 +35,37 @@ namespace YunDa.ASIS.Server.Filters
         /// <returns></returns>
         public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
-            var controllerName = context.HttpContext.GetRouteValue("controller");
-            var actionName = context.HttpContext.GetRouteValue("action");
+            var httpContext = context.HttpContext;
 
-            var para = context.HttpContext.Request.QueryString.Value;
-            _ILogger.LogInformation($"执行{controllerName}控制器--{actionName}方法；参数为：{para}");
+            var controllerName = httpContext.GetRouteValue("controller");
+            var actionName = httpContext.GetRouteValue("action");
 
-            ActionExecutedContext executedContext = await next.Invoke(); //这句话执行就是去执行Action  
+            _ILogger.LogInformation($">> [{DateTime.Now}] {httpContext.Request.Host} {httpContext.Request.Method} {httpContext.Request.Path}");
 
-            var result = Newtonsoft.Json.JsonConvert.SerializeObject(executedContext.Result);
-            _ILogger.LogInformation($"执行{controllerName}控制器--{actionName}方法:执行结果为：{result}");
+            var para = httpContext.Request.QueryString.Value;
+            _ILogger.LogInformation($"Controller: {controllerName} Action: {actionName} Parameter: {para}");
+
+            ActionExecutedContext executedContext = await next.Invoke(); //这句话执行就是去执行 Action  
+
+            IActionResult? result = executedContext.Result;
+            #region result detail
+            object? ss = null;
+            if (result is JsonResult json)
+            {
+                //ss = Newtonsoft.Json.JsonConvert.SerializeObject(result);
+                ss = json;
+            }
+            else if (result is RedirectToActionResult redirect)
+            {
+                ss = redirect;
+            }
+            else
+            {
+                ss = Newtonsoft.Json.JsonConvert.SerializeObject(result);
+            }
+            #endregion
+            _ILogger.LogInformation($"Controller: {controllerName} Action: {actionName} IActionResult: {ss}");
         }
-
 
         public override void OnResultExecuting(ResultExecutingContext context)
         {

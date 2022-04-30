@@ -1,16 +1,10 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Diagnostics;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using System.Security.Claims;
-using YunDa.ASIS.Server.Filters;
-using YunDa.ASIS.Server.Providers;
-using YunDa.ASIS.Server.Services;
-using YunDa.ASIS.Server.Utility.JsonTypeConverter;
-using static System.Net.Mime.MediaTypeNames;
-
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.AspNetCore.Http.Connections;
+using MQTTnet.AspNetCore;
+using MQTTnet.AspNetCore.Extensions;
+using MQTTnet.Protocol;
+using MQTTnet.Server;
+using SignalRDemo1.Hubs;
+using SignalRNotify;
 
 // Add services to the container.
 
@@ -18,27 +12,25 @@ var builder = WebApplication.CreateBuilder(args);
 //{
 //    options.ForwardClientCertificate = true;
 //});
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRazorPages();
 
 #region Log4Net
+builder.Host.ConfigureLogging(logging =>
 {
-    ////Nuget 包引入：
-    ////1.Log4Net
-    ////2.Microsoft.Extensions.Logging.Log4Net.AspNetCore
-    builder.Services.AddLogging(cfg =>
+    logging.ClearProviders();
+    //logging.AddConsole();
+});
+builder.Services.AddLogging(cfg =>
+{
+    cfg.AddLog4Net(new Log4NetProviderOptions()
     {
-        //默认的配置文件路径是在根目录，且文件名为log4net.config
-        //如果文件路径或名称有变化，需要重新设置其路径或名称
-        //比如在项目根目录下创建一个名为cfg的文件夹，将log4net.config文件移入其中，并改名为log.config
-        //则需要使用下面的代码来进行配置
-        cfg.AddLog4Net(new Log4NetProviderOptions()
-        {
-            Log4NetConfigFileName = "ConfigFiles/log4net.config",
-            Watch = true
-        });
-
+        Log4NetConfigFileName = "ConfigFiles/log4net.config",
+        Watch = true,
     });
-}
-
+});
+builder.Services.AddSingleton<LoggerService>();
 #endregion
 
 #region NLogin
@@ -54,19 +46,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 #region Database
 builder.Services.Configure<MongoDbSettings>(
-builder.Configuration.GetSection("MongoDbSettings")
-);
+    builder.Configuration.GetSection("MongoDbSettings"));
+builder.Services.AddSingleton<MongoDbService>();
 #endregion
 
 builder.Services.AddSingleton<BooksService>();
-builder.Services.AddSingleton<MongoDbService>();
-builder.Services.AddSingleton<LoggerService>();
 
-
-// 注册
-builder.Services.AddTransient<IAuthorizationPolicyProvider, CustomAuthorizationPolicyProvider>();
-// 选择何种方式 鉴权(身份验证) 注册 cookie 认证服务
-
+#region Config Authentication/AddAuthorization
 // Config Authentication
 builder.Services.AddAuthentication(option =>
 {
@@ -83,12 +69,44 @@ builder.Services.AddAuthentication(option =>
     option.AccessDeniedPath = "/api/exception/unauthorized";
 });
 
+
+IConfigurationSection jwtSection = builder.Configuration.GetSection("JWTTokenOptions");
+//JWTTokenOptions tokenOptions = new JWTTokenOptions();
+//builder.Configuration.Bind("JWTTokenOptions", tokenOptions);
+JWTTokenOptions tokenOptions = jwtSection.Get<JWTTokenOptions>();
+
+builder.Services.Configure<JWTTokenOptions>(jwtSection);
+builder.Services.AddTransient<IJWTAuthorizeService, JWTAuthorizHSService>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // 配置 鉴权验证 规则
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            //JWT有一些默认的属性，就是给鉴权时就可以筛选了
+            ValidateIssuer = true,//是否验证Issuer
+            ValidateAudience = true,//是否验证Audience
+            ValidateLifetime = true,//是否验证失效时间
+            ValidateIssuerSigningKey = true,//是否验证SecurityKey
+            ValidAudience = tokenOptions.Audience,//
+            ValidIssuer = tokenOptions.Issuer,//Issuer，这两项和前面签发jwt的设置一致
+            IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(tokenOptions.SecurityKey))//拿到SecurityKey 
+        };
+    }
+);
+
+
 // Config Authorization
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("UserPolicy", config =>
+    options.AddPolicy(AuthorizePolicy.UserPolicy, policyBuilder =>
     {
-        config.RequireAssertion(context =>
+        policyBuilder.RequireRole("Admin");
+        policyBuilder.RequireClaim("Account", "Administrator");
+        policyBuilder.AddRequirements(new AuthKeyRequirement());
+
+        policyBuilder.RequireAssertion(context =>
         {
             bool pass1 = context.User.HasClaim(c => c.Type == ClaimTypes.Role);
             bool pass2 = context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value == "Admin";
@@ -97,17 +115,10 @@ builder.Services.AddAuthorization(options =>
             return pass;
         });
     });
-
-    // 验证策略(多个)
-    options.AddPolicy("testpolicy", builder =>
-    {
-        builder.RequireClaim("user", "delete");
-    });
-    options.AddPolicy("testpolicy1", builder =>
-    {
-        builder.RequireRole("admin");
-    });
 });
+builder.Services.AddTransient<IAuthorizationHandler, AuthKeyHander>();
+
+#endregion
 
 builder.Services.AddRouting(options =>
 {
@@ -115,9 +126,10 @@ builder.Services.AddRouting(options =>
 });
 
 #region Controller Filter Json
-builder.Services.AddControllers(options =>
+//builder.Services.AddControllers(options =>
+builder.Services.AddControllersWithViews(options =>
 {
-    options.Filters.Add<CustomGlobalActionFilterAttribute>(); // 全局注册 Filter
+    options.Filters.Add<CustomAllActionResultFilterAttribute>(); // 全局注册 Filter
 }).AddNewtonsoftJson(options =>
 {
     // Use the default property (Pascal) casing
@@ -132,62 +144,250 @@ builder.Services.AddControllers(options =>
 
 #endregion
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
+#region SwaggerGen
 builder.Services.AddSwaggerGen(c =>
 {
-    //c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+    var asmbly = typeof(Program).Assembly;
+    c.CustomSchemaIds(t => t.FullName);
+    //[ApiExplorerSettings(GroupName = "V1"))]
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "v1",
+        Title = asmbly.GetName().Name,
+        Description = "Swagger for Api Test",
+    });
+    //  为Swagger JSON and UI设置xml文档注释路径 
+    //string basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);//获取应用程序所在目录（绝对，不受工作目录影响，建议采用此方法获取路径）
+    string basePath = AppContext.BaseDirectory;
+    string xmlName = asmbly.GetName().Name + ".xml";
+    // 项目属性 -> 文档文件 -> [√]生成包含 API 文档的文件
+    var filePath = Path.Combine(basePath, xmlName);
+    c.IncludeXmlComments(filePath);
 });
 
+#endregion
+
+#region Cors
+builder.Services.AddCors(policy =>
+{
+    policy.AddPolicy("CorsPolicy", opt => opt
+    .AllowAnyOrigin()
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .WithExposedHeaders("X-Pagination"));
+});
+#endregion
+
+#region Autofac AOP
+// NutGet: Autofac、Castle.Core、Autofac.Extras.DynamicProx
+builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory()); // 通过工厂替换，把Autofac整合进来
+builder.Host.ConfigureContainer<ContainerBuilder>((containerBuilder) =>
+{
+    containerBuilder.RegisterType<CusotmInterceptor>();
+    containerBuilder.RegisterType<CusotmLogInterceptor>();
+    containerBuilder.RegisterType<CusotmCacheInterceptor>();
+
+    containerBuilder.RegisterType<Microphone>().As<IMicrophone>();
+    containerBuilder.RegisterType<Power>().As<IPower>();
+    containerBuilder.RegisterType<Headphone>().As<IHeadphone>();
+
+    containerBuilder.RegisterType<ApplePhone>().As<IPhone>()
+        //.EnableClassInterceptors(); //当前的配置 要支持AOP扩展--通过类来支持 virtual 方法
+        //.EnableInterfaceInterceptors() // 当前的配置 要支持AOP扩展--通过 接口 来支持
+        .EnableInterfaceInterceptors(new Castle.DynamicProxy.ProxyGenerationOptions()
+        {
+            // use InterceptorSelector
+            Selector = new CustomInterceptorSelector()
+        })
+        ;
+
+    // 对指定的类型 指定 拦截器
+    //containerBuilder.RegisterAssemblyTypes(Assembly.Load("YunDa.ASIS.Server"))
+    containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
+        .Where(s =>
+        {
+            var pass = s.Name.Contains("Power");
+            return pass;
+        })
+        .PropertiesAutowired()
+        .AsImplementedInterfaces()
+        .EnableInterfaceInterceptors()
+        .InterceptedBy(typeof(CusotmLogInterceptor)) // 指定拦截器
+        ;
+
+
+    // 注册 每个 Controller, 并开启属性注入功能
+    var ctrllerBaseType = typeof(ControllerBase);
+    containerBuilder.RegisterAssemblyTypes(typeof(Program).Assembly)
+        .Where(t => ctrllerBaseType.IsAssignableFrom(t) && t != ctrllerBaseType)
+        .PropertiesAutowired(new CusotmPropertySelector());
+    #region another way
+    //var ctrllersTypesInDll = typeof(Program).Assembly.GetExportedTypes()
+    //        .Where(t => ctrllerBaseType.IsAssignableFrom(t)).ToArray();
+
+    //containerBuilder.RegisterTypes(ctrllersTypesInDll)
+    //    .PropertiesAutowired(new CusotmPropertySelector());
+    #endregion
+});
+
+// 支持控制器的实例 由 IOC容器--Autofac 进行创建
+builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
+#endregion
+
+#region MQTT
+
+string hostIp = builder.Configuration["MqttOption:HostIp"];//IP地址
+int hostPort = int.Parse(builder.Configuration["MqttOption:HostPort"]);//端口号
+int timeout = int.Parse(builder.Configuration["MqttOption:Timeout"]);//超时时间
+string username = builder.Configuration["MqttOption:UserName"];//用户名
+string password = builder.Configuration["MqttOption:Password"];//密码
+
+var optionBuilder = new MqttServerOptionsBuilder()
+    .WithDefaultEndpointBoundIPAddress(System.Net.IPAddress.Parse(hostIp))
+    .WithDefaultEndpointPort(hostPort)
+    .WithDefaultCommunicationTimeout(TimeSpan.FromMilliseconds(timeout))
+    .WithConnectionValidator(t =>
+    {
+        if (t.Username != username || t.Password != password)
+        {
+            t.ReasonCode = MqttConnectReasonCode.BadUserNameOrPassword;
+        }
+        else
+        {
+            t.ReasonCode = MqttConnectReasonCode.Success;
+        }
+    });
+
+var option = optionBuilder.Build();
+
+builder.Services
+    .AddHostedMqttServer(option)
+    .AddMqttConnectionHandler()
+    .AddConnections()
+    .AddMqttTcpServerAdapter()
+    .AddMqttWebSocketServerAdapter();
+
+#endregion
+
+#region SignalR
+builder.Services.AddSignalR(hubOptions =>
+{
+    hubOptions.EnableDetailedErrors = true;
+    hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(13);
+});
+#endregion
+
+builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+    app.UseSwagger(c =>
+    {
+        c.SerializeAsV2 = false;
+    });
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Example API v1");
+        c.RoutePrefix = string.Empty;
+    });
 
-    app.UseDeveloperExceptionPage();
+    var options = new DeveloperExceptionPageOptions();
+    options.SourceCodeLineCount = 13;
+    app.UseDeveloperExceptionPage(options); // 异常页面
 }
 else
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-
     app.UseExceptionHandler("/Error"); // UseExceptionHandler 是添加到管道中的第一个中间件组件。因此，异常处理程序中间件会捕获以后调用中发生的任何异常
     app.UseHsts(); // https 相关
 }
 
+
+#region UseMqttServer
+app.UseMqttServer(server =>
+{
+
+    server.StartedHandler = new MqttServerStartedHandlerDelegate(
+    (args) =>
+    {
+        return Task.Run(() =>
+        {
+
+        });
+    });
+
+    server.StoppedHandler = new MqttServerStoppedHandlerDelegate((args) =>
+    {
+        return Task.Run(() =>
+        {
+
+        });
+    });
+
+    server.UseClientConnectedHandler(
+    (args) =>
+    {
+        return Task.Run(() =>
+        {
+
+        });
+    });
+    server.UseClientDisconnectedHandler(
+    (args) =>
+    {
+        return Task.Run(() =>
+        {
+
+        });
+    });
+
+    //server.StartAsync();
+});
+
+//app.UseConnections(c => c.MapConnectionHandler<MqttConnectionHandler>("/data", options =>
+//{
+//    options.WebSockets.SubProtocolSelector = MQTTnet.AspNetCore.ApplicationBuilderExtensions.SelectSubProtocol;
+//}));
+#endregion
+
+app.UseCors("CorsPolicy");
 app.UseRouting();        // 路由 中间件
 app.UseAuthentication(); // 身份验证 中间件 在允许用户访问安全资源之前尝试对用户进行身份验证
 app.UseAuthorization();  // 身份授权 中间件 授权用户访问安全资源
-app.UseStaticFiles();
-app.UseFileServer(enableDirectoryBrowsing: true); // 文件浏览
-app.UseServiceLocator();
-//app.UseEndpoints(options =>
-//{
-//    options.MapDefaultControllerRoute(); // {controller=Home}/{action=Index}/{id?}
-//    options.MapControllers();
-//});
+app.UseEndpoints(endpoints =>
+{
+    //endpoints.MapRazorPages();
+    //endpoints.MapControllers();
+    //endpoints.MapDefaultControllerRoute(); // {controller=Home}/{action=Index}/{id?}
+    endpoints.MapMqtt("/data");
 
+    endpoints.MapHub<ChatHub>("/chatHub", options =>
+    {
+        options.Transports =
+            HttpTransportType.WebSockets |
+            HttpTransportType.LongPolling |
+            HttpTransportType.ServerSentEvents;
+    });
+    endpoints.MapHub<NotificationHub>("/notificationHub");
+});
+app.UseDefaultFiles();   // 默认文件中间件
+app.UseStaticFiles();    // 静态文件中间件
+app.UseFileServer(enableDirectoryBrowsing: true); // 文件浏览
+app.UseHttpsRedirection();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=user}/{action=index}/{id?}");
 
 // 自定义中间件
-//app.Use(async (context, next) =>
-//{
-//    // Do work that doesn't write to the Response.
-//    Console.WriteLine("Do work that doesn't write to the Response");
-//    await next.Invoke();
-//    // Do loggin or other work that does't write to the Response.
-//    Console.WriteLine("Do loggin or other work that does't write to the Response.");
-//});
-//app.UseMiddleware<LogsMiddleware>(); //添加日志记录中间件
+app.UseMiddleware<MinimalApiMiddleware>();
 
 app.MapControllers();
+app.MapRazorPages();
+
 
 
 #region Exception Handler
@@ -239,16 +439,22 @@ app.UseExceptionHandler(config =>
 
 #endregion
 
-// no use controller
-app.MapGet("/api/heart", () =>
-{
-    return "ok";
-})
-.WithName("Heart");
+////app.MapRazorPages();
+//app.Run();
 
+//app.Use(async (context, next) =>
+//{
+//    context.Response.ContentType = $"{Text.Plain};chartset=utf-8";
+//    // beofre ...
+//    LoggerService.Info("await next() before...");
+//    await next(); // call next middleware
+//    // after ...
+//    LoggerService.Info("await next() after...");
+//});
+
+
+app.UseUserMiniApi();
+app.UsePhoneMiniApi();
+app.UseServiceLocator();
 
 app.Run();
-//app.Run(async context =>
-//{
-//    await context.Response.WriteAsync("Append response end.");
-//});
