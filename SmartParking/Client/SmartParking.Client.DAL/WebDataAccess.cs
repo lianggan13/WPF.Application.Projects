@@ -7,7 +7,8 @@ namespace SmartParking.Client.DAL
 {
     public class WebDataAccess
     {
-        private string domain = "http://192.168.1.87:5002/api";
+        //private string domain = "http://192.168.1.87:5002/api";
+        private string domain = "http://localhost:8080/api";
 
         public Task<string> GetDatas(string uri)
         {

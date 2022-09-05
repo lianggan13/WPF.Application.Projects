@@ -156,6 +156,7 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Swagger for Api Test",
     });
     //  为Swagger JSON and UI设置xml文档注释路径 
+    //Assembly.GetExecutingAssembly().Location;
     //string basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);//获取应用程序所在目录（绝对，不受工作目录影响，建议采用此方法获取路径）
     string basePath = AppContext.BaseDirectory;
     string xmlName = typeof(Program).Assembly.GetName().Name + ".xml";
@@ -276,8 +277,6 @@ builder.Services.AddSignalR(hubOptions =>
     hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(13);
 });
 #endregion
-
-
 
 
 builder.Services.AddEndpointsApiExplorer();

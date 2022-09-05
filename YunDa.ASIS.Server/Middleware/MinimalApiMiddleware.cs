@@ -1,4 +1,6 @@
-﻿namespace YunDa.ASIS.Server.Middleware
+﻿using System.Net;
+
+namespace YunDa.ASIS.Server.Middleware
 {
     public class MinimalApiMiddlewareData
     {
@@ -23,7 +25,9 @@
                 using (var scope = httpContext.RequestServices.CreateScope())
                 {
                     //var filter = scope.ServiceProvider.GetService<CustomAllActionResultFilterAttribute>();
-                    _ILogger.LogInformation($">> [{DateTime.Now}] {httpContext.Request.Host} {httpContext.Request.Method} {httpContext.Request.Path}");
+                    IPAddress? remoteIpAddress = httpContext.Request.HttpContext.Connection.RemoteIpAddress;
+
+                    _ILogger.LogInformation($">> [{DateTime.Now}] {remoteIpAddress} {httpContext.Request.Method} {httpContext.Request.Path}");
                 }
             }
 

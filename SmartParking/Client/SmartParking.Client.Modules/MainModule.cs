@@ -10,7 +10,7 @@ namespace SmartParking.Client.Modules
     {
         public void OnInitialized(IContainerProvider containerProvider)
         {
-            // 添加组件 至 对应区域
+            // Register View to Region
             var regionManager = containerProvider.Resolve<IRegionManager>();
             regionManager.RegisterViewWithRegion(SystemString.LeftMenuTreeRegion, typeof(TreeMenuView));
             regionManager.RegisterViewWithRegion(SystemString.MainHeaderRegion, typeof(MainHeaderView));
