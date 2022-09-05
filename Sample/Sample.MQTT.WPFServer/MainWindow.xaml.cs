@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -234,7 +235,7 @@ namespace Sample.MQTT.WPFServer
         }
 
 
-        public static void Pushlish_Using_Timer()
+        public void Pushlish_Using_Timer()
         {
             _ = Task.Run(async () =>
             {
@@ -243,7 +244,7 @@ namespace Sample.MQTT.WPFServer
                 {
                     try
                     {
-                        await managedMqttClient.PublishAsync("HeartAckTopic", $"{DateTime.Now}");
+                        await mqttServer.PublishAsync("HeartAckTopic", $"{DateTime.Now}");
                     }
                     catch
                     {

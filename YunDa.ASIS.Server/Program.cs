@@ -147,19 +147,20 @@ builder.Services.AddControllersWithViews(options =>
 #region SwaggerGen
 builder.Services.AddSwaggerGen(c =>
 {
+    var asmbly = typeof(Program).Assembly;
     c.CustomSchemaIds(t => t.FullName);
     //[ApiExplorerSettings(GroupName = "V1"))]
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Shen12DP",
         Version = "v1",
+        Title = asmbly.GetName().Name,
         Description = "Swagger for Api Test",
     });
     //  为Swagger JSON and UI设置xml文档注释路径 
     //Assembly.GetExecutingAssembly().Location;
     //string basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);//获取应用程序所在目录（绝对，不受工作目录影响，建议采用此方法获取路径）
     string basePath = AppContext.BaseDirectory;
-    string xmlName = typeof(Program).Assembly.GetName().Name + ".xml";
+    string xmlName = asmbly.GetName().Name + ".xml";
     // 项目属性 -> 文档文件 -> [√]生成包含 API 文档的文件
     var filePath = Path.Combine(basePath, xmlName);
     c.IncludeXmlComments(filePath);
@@ -234,7 +235,6 @@ builder.Host.ConfigureContainer<ContainerBuilder>((containerBuilder) =>
 builder.Services.Replace(ServiceDescriptor.Transient<IControllerActivator, ServiceBasedControllerActivator>());
 #endregion
 
-
 #region MQTT
 
 string hostIp = builder.Configuration["MqttOption:HostIp"];//IP地址
@@ -281,15 +281,21 @@ builder.Services.AddSignalR(hubOptions =>
 
 builder.Services.AddEndpointsApiExplorer();
 
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwagger(c =>
+    {
+        c.SerializeAsV2 = false;
+    });
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Example API v1");
+        c.RoutePrefix = string.Empty;
+    });
 
     var options = new DeveloperExceptionPageOptions();
     options.SourceCodeLineCount = 13;
