@@ -156,7 +156,7 @@ namespace Sample.MQTT.WPFServer
             WriteToStatus("客户端" + e.ClientId + "退订主题" + e.TopicFilter);
         }
 
-        private void ReceiveMessage(MqttApplicationMessageReceivedEventArgs e)
+        private async void ReceiveMessage(MqttApplicationMessageReceivedEventArgs e)
         {
             //if (Clients.TryGetValue(e.ClientId ?? "", out string ip))
             //{
@@ -192,7 +192,7 @@ namespace Sample.MQTT.WPFServer
                         QualityOfServiceLevel = e.ApplicationMessage.QualityOfServiceLevel,
                         Retain = e.ApplicationMessage.Retain
                     };
-                    mqttServer.PublishAsync(message);
+                    await mqttServer.PublishAsync(message);
                 }
             }
             WriteToStatus("收到消息" + e.ApplicationMessage.ConvertPayloadToString() + ",来自客户端" + e.ClientId + ",主题为" + e.ApplicationMessage.Topic);

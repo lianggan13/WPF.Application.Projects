@@ -1,0 +1,48 @@
+﻿<Window
+    x:Class="YunDa.ASIS.Client.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:YunDa.ASIS.Client.Views"
+    xmlns:prism="http://prismlibrary.com/"
+    Title="{Binding Title}"
+    Height="450" Width="800"
+    prism:ViewModelLocator.AutoWireViewModel="True">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="150" />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <StackPanel>
+            <Button
+                Height="40"
+                Command="{Binding GoCommand}"
+                CommandParameter="View1"
+                Content="View1" />
+            <Button
+                Height="40"
+                Command="{Binding GoCommand}"
+                CommandParameter="View2"
+                Content="View2" />
+            <Button
+                Height="40"
+                Command="{Binding GoCommand}"
+                CommandParameter="SignalRClientView"
+                Content="SignalRClientView" />
+        </StackPanel>
+        <TabControl Grid.Column="1" prism:RegionManager.RegionName="ContentRegion">
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Content.DataContext.Title}" />
+                        <Button
+                            Width="20"
+                            Height="20"
+                            Command="{Binding RelativeSource={RelativeSource AncestorType=local:MainWindow}, Path=DataContext.DeleteCommand}"
+                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Content}"
+                            Content="X" />
+                    </StackPanel>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+        </TabControl>
+    </Grid>
+</Window>

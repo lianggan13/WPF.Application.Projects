@@ -123,7 +123,7 @@ namespace Sample.MQTT.WPFClient
             }
         }
 
-        private void InitClient(string id, string url = "127.0.0.1", int port = 1883)
+        private void InitClient(string id, string ip = "127.0.0.1", int port = 1883)
         {
             //var mqttClient1 = new MqttFactory().CreateMqttClient();
             //var managedClient = new ManagedMqttClient(testEnvironment.CreateClient(), new MqttNetEventLogger());
@@ -147,7 +147,7 @@ namespace Sample.MQTT.WPFClient
 
             var mqttClientBuilder = new MqttClientOptionsBuilder()
                 .WithClientId(Guid.NewGuid().ToString())
-                .WithTcpServer(url, port)
+                .WithTcpServer(ip, port)
                 .WithCleanSession(true)
                 .WithCommunicationTimeout(TimeSpan.FromSeconds(6))
                 .WithKeepAlivePeriod(TimeSpan.FromSeconds(100))
