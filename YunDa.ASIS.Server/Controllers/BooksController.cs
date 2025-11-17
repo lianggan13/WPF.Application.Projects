@@ -1,11 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using YunDa.ASIS.Server.Middleware;
 using YunDa.ASIS.Server.Models;
-using YunDa.ASIS.Server.Services;
 
 namespace YunDa.ASIS.Server.Controllers
 {
@@ -22,8 +16,11 @@ namespace YunDa.ASIS.Server.Controllers
         }
 
         [HttpGet]
-        public async Task<List<Book>> Get() =>
-            await _booksService.GetAsync();
+        public async Task<List<Book>> Get()
+        {
+            throw new Exception("我的异常");
+            return await _booksService.GetAsync();
+        }
 
         [HttpGet]
         [Route("/api/[controller]/login")]

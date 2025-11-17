@@ -100,13 +100,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Config Authorization
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy(AuthorizePolicy.UserPolicy, policyBuilder =>
+    options.AddPolicy(AuthorizePolicy.UserPolicy, policy =>
     {
-        policyBuilder.RequireRole("Admin");
-        policyBuilder.RequireClaim("Account", "Administrator");
-        policyBuilder.AddRequirements(new AuthKeyRequirement());
+        policy.RequireRole("Admin");
+        policy.RequireClaim("Account", "Administrator");
+        policy.AddRequirements(new AuthKeyRequirement());
 
-        policyBuilder.RequireAssertion(context =>
+        policy.RequireAssertion(context =>
         {
             bool pass1 = context.User.HasClaim(c => c.Type == ClaimTypes.Role);
             bool pass2 = context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value == "Admin";
@@ -307,6 +307,54 @@ else
     app.UseHsts(); // https 相关
 }
 
+#region Exception Handler
+//app.UseStatusCodePages(Application.Json, "Status Code Page: {0}");
+//app.UseStatusCodePages(async statusCodeContext =>
+//{
+//    // using static System.Net.Mime.MediaTypeNames;
+//    statusCodeContext.HttpContext.Response.ContentType = Application.Json;
+
+//    await statusCodeContext.HttpContext.Response.WriteAsync(
+//        $"Status Code Page: {statusCodeContext.HttpContext.Response.StatusCode}");
+//});
+//app.UseStatusCodePagesWithRedirects("/StatusCode/{0}");
+//app.UseStatusCodePagesWithReExecute("/StatusCode/{0}");
+//app.UseStatusCodePagesWithReExecute("/StatusCode", "?statusCode={0}");
+//app.UseStatusCodePagesWithReExecute("/Error/{0}");//只要不是200 都能进来
+
+app.UseExceptionHandler(config =>
+{
+    config.Run(async context =>
+    {
+        //context.Response.StatusCode = 500;
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = Application.Json; //  Text.Plain
+
+        LoggerService.Error((context.Request.Method).PadLeft(5) + context.Request.Path);
+
+        string url = string.Empty;
+        var statusCodeReExecuteFeature =
+                context.Features.Get<IStatusCodeReExecuteFeature>();
+        if (statusCodeReExecuteFeature != null)
+        {
+            url = string.Join(
+               statusCodeReExecuteFeature.OriginalPathBase,
+               statusCodeReExecuteFeature.OriginalPath,
+               statusCodeReExecuteFeature.OriginalQueryString);
+        }
+
+        var error = context.Features.Get<IExceptionHandlerFeature>();
+        if (error != null)
+        {
+            var ex = error.Error;
+            var errorStr = JsonConvert.SerializeObject(ex);
+            await context.Response.WriteAsync(errorStr);
+            LoggerService.Error(url, ex);
+        }
+    });
+});
+
+#endregion
 
 #region UseMqttServer
 app.UseMqttServer(server =>
@@ -357,8 +405,8 @@ app.UseMqttServer(server =>
 
 app.UseCors("CorsPolicy");
 app.UseRouting();        // 路由 中间件
-app.UseAuthentication(); // 身份验证 中间件 在允许用户访问安全资源之前尝试对用户进行身份验证
-app.UseAuthorization();  // 身份授权 中间件 授权用户访问安全资源
+app.UseAuthentication(); // 鉴权 中间件 在允许用户访问安全资源之前尝试对用户进行身份验证
+app.UseAuthorization();  // 授权 中间件 授权用户访问安全资源
 app.UseEndpoints(endpoints =>
 {
     //endpoints.MapRazorPages();
@@ -392,54 +440,7 @@ app.MapRazorPages();
 
 
 
-#region Exception Handler
-//app.UseStatusCodePages(Application.Json, "Status Code Page: {0}");
-//app.UseStatusCodePages(async statusCodeContext =>
-//{
-//    // using static System.Net.Mime.MediaTypeNames;
-//    statusCodeContext.HttpContext.Response.ContentType = Application.Json;
 
-//    await statusCodeContext.HttpContext.Response.WriteAsync(
-//        $"Status Code Page: {statusCodeContext.HttpContext.Response.StatusCode}");
-//});
-//app.UseStatusCodePagesWithRedirects("/StatusCode/{0}");
-//app.UseStatusCodePagesWithReExecute("/StatusCode/{0}");
-//app.UseStatusCodePagesWithReExecute("/StatusCode", "?statusCode={0}");
-//app.UseStatusCodePagesWithReExecute("/Error/{0}");//只要不是200 都能进来
-
-app.UseExceptionHandler(config =>
-{
-    config.Run(async context =>
-    {
-        //context.Response.StatusCode = 500;
-        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        context.Response.ContentType = Application.Json; //  Text.Plain
-
-        LoggerService.Error((context.Request.Method).PadLeft(5) + context.Request.Path);
-
-        string url = string.Empty;
-        var statusCodeReExecuteFeature =
-                context.Features.Get<IStatusCodeReExecuteFeature>();
-        if (statusCodeReExecuteFeature != null)
-        {
-            url = string.Join(
-               statusCodeReExecuteFeature.OriginalPathBase,
-               statusCodeReExecuteFeature.OriginalPath,
-               statusCodeReExecuteFeature.OriginalQueryString);
-        }
-
-        var error = context.Features.Get<IExceptionHandlerFeature>();
-        if (error != null)
-        {
-            var ex = error.Error;
-            var errorStr = JsonConvert.SerializeObject(ex);
-            await context.Response.WriteAsync(errorStr);
-            LoggerService.Error(url, ex);
-        }
-    });
-});
-
-#endregion
 
 ////app.MapRazorPages();
 //app.Run();
